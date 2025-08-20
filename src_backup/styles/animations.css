@@ -1,0 +1,318 @@
+/* 📁 src/styles/animations.css - 고급 애니메이션 효과 */
+
+/* === 페이지 진입 애니메이션 === */
+@keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes fadeInScale {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  @keyframes slideInRight {
+    from {
+      opacity: 0;
+      transform: translateX(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  /* === 마이크로 인터랙션 === */
+  @keyframes bounce {
+    0%, 20%, 50%, 80%, 100% {
+      transform: translateY(0);
+    }
+    40% {
+      transform: translateY(-4px);
+    }
+    60% {
+      transform: translateY(-2px);
+    }
+  }
+  
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  
+  @keyframes shake {
+    0%, 100% {
+      transform: translateX(0);
+    }
+    10%, 30%, 50%, 70%, 90% {
+      transform: translateX(-2px);
+    }
+    20%, 40%, 60%, 80% {
+      transform: translateX(2px);
+    }
+  }
+  
+  /* === 로딩 애니메이션 === */
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  
+  @keyframes dots {
+    0%, 20% {
+      color: rgba(0, 0, 0, 0.4);
+      text-shadow: 0.25em 0 0 rgba(0, 0, 0, 0.2),
+                   0.5em 0 0 rgba(0, 0, 0, 0.2);
+    }
+    40% {
+      color: rgba(0, 0, 0, 1);
+      text-shadow: 0.25em 0 0 rgba(0, 0, 0, 0.4),
+                   0.5em 0 0 rgba(0, 0, 0, 0.2);
+    }
+    60% {
+      text-shadow: 0.25em 0 0 rgba(0, 0, 0, 1),
+                   0.5em 0 0 rgba(0, 0, 0, 0.4);
+    }
+    80%, 100% {
+      text-shadow: 0.25em 0 0 rgba(0, 0, 0, 1),
+                   0.5em 0 0 rgba(0, 0, 0, 1);
+    }
+  }
+  
+  /* === 그라데이션 애니메이션 === */
+  @keyframes gradientShift {
+    0% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+    100% {
+      background-position: 0% 50%;
+    }
+  }
+  
+  /* === 글로우 효과 === */
+  @keyframes glow {
+    0% {
+      box-shadow: 0 0 5px rgba(139, 92, 246, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.6),
+                  0 0 30px rgba(139, 92, 246, 0.4);
+    }
+    100% {
+      box-shadow: 0 0 5px rgba(139, 92, 246, 0.3);
+    }
+  }
+  
+  /* === 실용적인 애니메이션 클래스 === */
+  
+  /* 페이지 진입 */
+  .animate-fade-in-up {
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+  
+  .animate-fade-in-scale {
+    animation: fadeInScale 0.4s ease-out forwards;
+  }
+  
+  .animate-slide-in-right {
+    animation: slideInRight 0.5s ease-out forwards;
+  }
+  
+  /* 지연 효과 */
+  .animate-delay-100 {
+    animation-delay: 0.1s;
+  }
+  
+  .animate-delay-200 {
+    animation-delay: 0.2s;
+  }
+  
+  .animate-delay-300 {
+    animation-delay: 0.3s;
+  }
+  
+  .animate-delay-500 {
+    animation-delay: 0.5s;
+  }
+  
+  /* 마이크로 인터랙션 */
+  .animate-bounce-subtle {
+    animation: bounce 1s ease-in-out;
+  }
+  
+  .animate-pulse-subtle {
+    animation: pulse 2s ease-in-out infinite;
+  }
+  
+  .animate-shake {
+    animation: shake 0.5s ease-in-out;
+  }
+  
+  /* 호버 효과 */
+  .hover-lift {
+    transition: all 0.3s ease;
+  }
+  
+  .hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+  }
+  
+  .hover-glow {
+    transition: all 0.3s ease;
+  }
+  
+  .hover-glow:hover {
+    animation: glow 1.5s ease-in-out infinite;
+  }
+  
+  .hover-scale {
+    transition: transform 0.2s ease;
+  }
+  
+  .hover-scale:hover {
+    transform: scale(1.05);
+  }
+  
+  /* 버튼 특화 효과 */
+  .button-ripple {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .button-ripple::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transition: width 0.6s, height 0.6s;
+    transform: translate(-50%, -50%);
+  }
+  
+  .button-ripple:active::before {
+    width: 300px;
+    height: 300px;
+  }
+  
+  /* 그라데이션 애니메이션 */
+  .gradient-animated {
+    background-size: 200% 200%;
+    animation: gradientShift 3s ease infinite;
+  }
+  
+  /* 로딩 상태 */
+  .loading-spinner {
+    animation: spin 1s linear infinite;
+  }
+  
+  .loading-dots::after {
+    content: '...';
+    animation: dots 1.5s steps(5, end) infinite;
+  }
+  
+  /* 스태거 애니메이션 */
+  .stagger-children > * {
+    opacity: 0;
+    animation: fadeInUp 0.6s ease-out forwards;
+  }
+  
+  .stagger-children > *:nth-child(1) { animation-delay: 0.1s; }
+  .stagger-children > *:nth-child(2) { animation-delay: 0.2s; }
+  .stagger-children > *:nth-child(3) { animation-delay: 0.3s; }
+  .stagger-children > *:nth-child(4) { animation-delay: 0.4s; }
+  .stagger-children > *:nth-child(5) { animation-delay: 0.5s; }
+  .stagger-children > *:nth-child(6) { animation-delay: 0.6s; }
+  
+  /* 모달 애니메이션 */
+  .modal-backdrop {
+    animation: fadeInScale 0.3s ease-out forwards;
+  }
+  
+  .modal-content {
+    animation: fadeInUp 0.3s ease-out forwards;
+  }
+  
+  /* 카드 애니메이션 */
+  .card-entrance {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 0.5s ease-out forwards;
+  }
+  
+  /* 에러 상태 */
+  .error-shake {
+    animation: shake 0.5s ease-in-out;
+    border-color: #ef4444 !important;
+  }
+  
+  /* 성공 상태 */
+  .success-bounce {
+    animation: bounce 0.6s ease-out;
+  }
+  
+  /* 포커스 애니메이션 */
+  .focus-ring {
+    transition: all 0.2s ease;
+  }
+  
+  .focus-ring:focus {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.3);
+  }
+  
+  /* 스크롤 기반 애니메이션 준비 */
+  .scroll-fade {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: all 0.6s ease;
+  }
+  
+  .scroll-fade.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  
+  /* 성능 최적화 */
+  .will-change-transform {
+    will-change: transform;
+  }
+  
+  .will-change-opacity {
+    will-change: opacity;
+  }
+  
+  /* GPU 가속 */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+  }

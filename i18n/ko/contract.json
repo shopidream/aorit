@@ -1,0 +1,255 @@
+{
+    "common": {
+      "save": "저장",
+      "cancel": "취소",
+      "confirm": "확인",
+      "edit": "수정",
+      "delete": "삭제",
+      "add": "추가",
+      "preview": "미리보기",
+      "download": "다운로드",
+      "send": "발송",
+      "back": "이전",
+      "next": "다음",
+      "loading": "로딩 중...",
+      "error": "오류가 발생했습니다",
+      "success": "성공적으로 완료되었습니다"
+    },
+    
+    "contract": {
+      "title": "계약서",
+      "serviceContract": "용역계약서",
+      "createContract": "계약서 생성",
+      "contractNumber": "계약번호",
+      "contractDate": "계약일자",
+      "signContract": "계약서 서명",
+      "contractStatus": "계약 상태",
+      "contractHistory": "계약 이력",
+      
+      "parties": {
+        "client": "발주자 (갑)",
+        "contractor": "수급자 (을)",
+        "representative": "대표자",
+        "companyName": "회사명",
+        "address": "주소",
+        "contact": "연락처",
+        "businessNumber": "사업자등록번호"
+      },
+      
+      "sections": {
+        "basicTerms": "기본 계약 조건",
+        "scope": "용역의 내용 및 범위",
+        "financial": "대금 및 지급조건",
+        "timeline": "일정 및 기한",
+        "intellectualProperty": "지식재산권",
+        "modification": "변경 및 수정",
+        "quality": "품질 및 검수",
+        "confidentiality": "비밀유지",
+        "termination": "계약해지",
+        "liability": "손해배상 및 면책",
+        "dispute": "분쟁해결",
+        "general": "기타사항"
+      },
+      
+      "payment": {
+        "totalAmount": "총 계약금액",
+        "installment": "분할 지급",
+        "lumpSum": "일괄 지급",
+        "advance": "선지급",
+        "firstPayment": "1차 지급",
+        "secondPayment": "2차 지급",
+        "finalPayment": "잔금",
+        "paymentRatio": "지급 비율",
+        "paymentMethod": "지급 방법",
+        "bankTransfer": "계좌이체",
+        "creditCard": "신용카드",
+        "cash": "현금",
+        "paymentDue": "지급 기한",
+        "overdue": "연체",
+        "penalty": "지연 배상금"
+      },
+      
+      "project": {
+        "projectTitle": "프로젝트명",
+        "projectDescription": "프로젝트 설명",
+        "deliverables": "산출물",
+        "startDate": "시작일",
+        "endDate": "완료일",
+        "duration": "소요 기간",
+        "milestone": "마일스톤",
+        "workLocation": "작업 장소",
+        "communicationMethod": "의사소통 방법"
+      },
+      
+      "clauses": {
+        "required": "필수 조항",
+        "recommended": "권장 조항",
+        "optional": "선택 조항",
+        "riskLevel": "위험도",
+        "low": "낮음",
+        "medium": "보통",
+        "high": "높음",
+        "clauseExplanation": "조항 설명",
+        "whyNeeded": "필요한 이유",
+        "whenUseful": "유용한 상황",
+        "potentialRisk": "잠재적 위험"
+      },
+      
+      "validation": {
+        "missingRequired": "필수 조항이 누락되었습니다",
+        "conflictingClauses": "상충되는 조항이 있습니다",
+        "highRiskWarning": "고위험 조항이 포함되어 있습니다",
+        "contractScore": "계약서 완성도",
+        "validationPassed": "검증 통과",
+        "validationFailed": "검증 실패",
+        "recommendedChanges": "권장 수정사항"
+      },
+      
+      "signature": {
+        "digitalSignature": "전자서명",
+        "signHere": "여기에 서명하세요",
+        "signatureDate": "서명일자",
+        "signerName": "서명자",
+        "signerTitle": "직책",
+        "companySeal": "회사 인장",
+        "signatureRequired": "서명이 필요합니다",
+        "bothPartiesSigned": "양 당사자 서명 완료",
+        "waitingForSignature": "서명 대기 중",
+        "signatureExpired": "서명 기한 만료",
+        "resendSignatureRequest": "서명 요청 재발송"
+      }
+    },
+    
+    "estimate": {
+      "title": "견적서",
+      "createEstimate": "견적서 생성",
+      "estimateNumber": "견적번호",
+      "estimateDate": "견적일자",
+      "validUntil": "유효기간",
+      "sendEstimate": "견적서 발송",
+      "estimateStatus": "견적 상태",
+      "estimateHistory": "견적 이력",
+      
+      "status": {
+        "draft": "작성 중",
+        "sent": "발송됨",
+        "viewed": "확인됨",
+        "approved": "승인됨",
+        "rejected": "거절됨",
+        "expired": "만료됨",
+        "contracted": "계약 체결"
+      },
+      
+      "services": {
+        "selectedServices": "선택된 서비스",
+        "addService": "서비스 추가",
+        "removeService": "서비스 제거",
+        "serviceCategory": "서비스 분류",
+        "serviceDescription": "서비스 설명",
+        "quantity": "수량",
+        "unitPrice": "단가",
+        "totalPrice": "총액",
+        "serviceOptions": "서비스 옵션"
+      },
+      
+      "calculation": {
+        "subtotal": "소계",
+        "discount": "할인",
+        "discountRate": "할인율",
+        "discountAmount": "할인 금액",
+        "taxAmount": "부가세",
+        "totalAmount": "총 금액",
+        "applyDiscount": "할인 적용",
+        "removeDiscount": "할인 제거"
+      },
+      
+      "customer": {
+        "customerInfo": "고객 정보",
+        "customerName": "고객명",
+        "customerEmail": "고객 이메일",
+        "customerPhone": "고객 전화번호",
+        "customerCompany": "고객 회사",
+        "customerAddress": "고객 주소",
+        "customerRequirements": "고객 요구사항"
+      }
+    },
+    
+    "profile": {
+      "title": "프로필",
+      "editProfile": "프로필 수정",
+      "digitalCard": "디지털 명함",
+      "portfolio": "포트폴리오",
+      "reviews": "후기",
+      "successRate": "성공률",
+      "completedProjects": "완료된 프로젝트",
+      "clientSatisfaction": "고객 만족도",
+      
+      "personalInfo": {
+        "name": "이름",
+        "title": "직책",
+        "company": "회사",
+        "bio": "소개",
+        "expertise": "전문 분야",
+        "experience": "경력",
+        "education": "학력",
+        "certifications": "자격증"
+      },
+      
+      "contact": {
+        "email": "이메일",
+        "phone": "전화번호",
+        "website": "웹사이트",
+        "linkedin": "링크드인",
+        "github": "깃허브",
+        "behance": "비핸스",
+        "instagram": "인스타그램",
+        "youtube": "유튜브"
+      },
+      
+      "portfolio": {
+        "addProject": "프로젝트 추가",
+        "projectTitle": "프로젝트 제목",
+        "projectDescription": "프로젝트 설명",
+        "projectImages": "프로젝트 이미지",
+        "projectUrl": "프로젝트 URL",
+        "technologies": "사용 기술",
+        "clientName": "클라이언트",
+        "completionDate": "완료일",
+        "projectCategory": "프로젝트 분류"
+      }
+    },
+    
+    "notifications": {
+      "estimateCreated": "견적서가 생성되었습니다",
+      "estimateSent": "견적서가 발송되었습니다",
+      "estimateApproved": "견적서가 승인되었습니다",
+      "contractCreated": "계약서가 생성되었습니다",
+      "contractSigned": "계약서에 서명되었습니다",
+      "paymentReceived": "대금이 입금되었습니다",
+      "projectCompleted": "프로젝트가 완료되었습니다",
+      "reminderPayment": "대금 지급 알림",
+      "reminderDeadline": "마감일 알림"
+    },
+    
+    "errors": {
+      "requiredField": "필수 입력 항목입니다",
+      "invalidEmail": "올바른 이메일 주소를 입력하세요",
+      "invalidPhone": "올바른 전화번호를 입력하세요",
+      "invalidDate": "올바른 날짜를 입력하세요",
+      "invalidAmount": "올바른 금액을 입력하세요",
+      "networkError": "네트워크 오류가 발생했습니다",
+      "serverError": "서버 오류가 발생했습니다",
+      "unauthorized": "권한이 없습니다",
+      "sessionExpired": "세션이 만료되었습니다"
+    },
+    
+    "success": {
+      "saved": "저장되었습니다",
+      "sent": "발송되었습니다",
+      "updated": "업데이트되었습니다",
+      "deleted": "삭제되었습니다",
+      "created": "생성되었습니다",
+      "signed": "서명되었습니다",
+      "approved": "승인되었습니다"
+    }
+  }

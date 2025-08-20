@@ -1,0 +1,299 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Aorit.com 브랜드 컬러 팔레트 */
+:root {
+  /* Primary Colors - 신뢰성과 전문성 */
+  --aorit-primary: #1E40AF;      /* Deep Blue - 메인 브랜드 */
+  --aorit-primary-dark: #1E3A8A; /* Hover state */
+  --aorit-primary-light: #3B82F6; /* Light variant */
+  
+  /* Secondary Colors - 성장과 성공 */
+  --aorit-secondary: #10B981;     /* Emerald Green */
+  --aorit-secondary-dark: #059669;
+  --aorit-secondary-light: #34D399;
+  
+  /* Accent Colors - 포인트 컬러 */
+  --aorit-accent: #F59E0B;        /* Amber - CTA용 */
+  --aorit-accent-dark: #D97706;
+  --aorit-accent-light: #FCD34D;
+  
+  /* Neutral Colors - 텍스트와 배경 */
+  --aorit-gray-50: #F9FAFB;
+  --aorit-gray-100: #F3F4F6;
+  --aorit-gray-200: #E5E7EB;
+  --aorit-gray-300: #D1D5DB;
+  --aorit-gray-400: #9CA3AF;
+  --aorit-gray-500: #6B7280;
+  --aorit-gray-600: #4B5563;
+  --aorit-gray-700: #374151;
+  --aorit-gray-800: #1F2937;
+  --aorit-gray-900: #111827;
+  
+  /* Status Colors */
+  --aorit-success: #10B981;
+  --aorit-warning: #F59E0B;
+  --aorit-error: #EF4444;
+  --aorit-info: #3B82F6;
+  
+  /* Shadows */
+  --aorit-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --aorit-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --aorit-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --aorit-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* 전역 스타일 리셋 */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  padding: 0;
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--aorit-gray-900);
+  background-color: var(--aorit-gray-50);
+  scroll-behavior: smooth;
+}
+
+/* 애플 스타일 타이포그래피 */
+.aorit-heading-1 {
+  font-size: 3rem;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  color: var(--aorit-gray-900);
+  margin-bottom: 1.5rem;
+}
+
+.aorit-heading-2 {
+  font-size: 2.25rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--aorit-gray-900);
+  margin-bottom: 1rem;
+}
+
+.aorit-heading-3 {
+  font-size: 1.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--aorit-gray-900);
+  margin-bottom: 0.75rem;
+}
+
+.aorit-body-large {
+  font-size: 1.125rem;
+  font-weight: 400;
+  line-height: 1.7;
+  color: var(--aorit-gray-700);
+}
+
+.aorit-body {
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.6;
+  color: var(--aorit-gray-700);
+}
+
+.aorit-body-small {
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--aorit-gray-600);
+}
+
+/* 애플 스타일 카드 컴포넌트 */
+.aorit-card {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: var(--aorit-shadow);
+  border: 1px solid var(--aorit-gray-200);
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.aorit-card:hover {
+  box-shadow: var(--aorit-shadow-lg);
+  transform: translateY(-2px);
+}
+
+.aorit-card-grid {
+  display: grid;
+  gap: 2rem;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+/* 애플 스타일 버튼 */
+.aorit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+.aorit-btn-primary {
+  background-color: var(--aorit-primary);
+  color: white;
+}
+
+.aorit-btn-primary:hover {
+  background-color: var(--aorit-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--aorit-shadow-lg);
+}
+
+.aorit-btn-secondary {
+  background-color: var(--aorit-secondary);
+  color: white;
+}
+
+.aorit-btn-secondary:hover {
+  background-color: var(--aorit-secondary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--aorit-shadow-lg);
+}
+
+.aorit-btn-accent {
+  background-color: var(--aorit-accent);
+  color: white;
+}
+
+.aorit-btn-accent:hover {
+  background-color: var(--aorit-accent-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--aorit-shadow-lg);
+}
+
+.aorit-btn-outline {
+  background-color: transparent;
+  color: var(--aorit-primary);
+  border: 2px solid var(--aorit-primary);
+}
+
+.aorit-btn-outline:hover {
+  background-color: var(--aorit-primary);
+  color: white;
+}
+
+/* 섹션 레이아웃 */
+.aorit-section {
+  padding: 4rem 0;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+.aorit-section-centered {
+  text-align: center;
+}
+
+/* 네비게이션 */
+.aorit-nav {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--aorit-gray-200);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+/* 인풋 스타일 */
+.aorit-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  border: 2px solid var(--aorit-gray-300);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  background: white;
+}
+
+.aorit-input:focus {
+  outline: none;
+  border-color: var(--aorit-primary);
+  box-shadow: 0 0 0 4px rgba(30, 64, 175, 0.1);
+}
+
+/* 상태 배지 */
+.aorit-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 9999px;
+}
+
+.aorit-badge-success {
+  background-color: rgba(16, 185, 129, 0.1);
+  color: var(--aorit-success);
+}
+
+.aorit-badge-warning {
+  background-color: rgba(245, 158, 11, 0.1);
+  color: var(--aorit-warning);
+}
+
+.aorit-badge-error {
+  background-color: rgba(239, 68, 68, 0.1);
+  color: var(--aorit-error);
+}
+
+/* 반응형 */
+@media (max-width: 768px) {
+  .aorit-heading-1 {
+    font-size: 2.25rem;
+  }
+  
+  .aorit-heading-2 {
+    font-size: 1.875rem;
+  }
+  
+  .aorit-section {
+    padding: 2rem 0;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  .aorit-card {
+    padding: 1.5rem;
+  }
+  
+  .aorit-card-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+/* 접근성 */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 다크모드 기본 준비 */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --aorit-gray-50: #111827;
+    --aorit-gray-900: #F9FAFB;
+  }
+}

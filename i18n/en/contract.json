@@ -1,0 +1,254 @@
+{
+    "common": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "confirm": "Confirm",
+      "edit": "Edit",
+      "delete": "Delete",
+      "add": "Add",
+      "preview": "Preview",
+      "download": "Download",
+      "send": "Send",
+      "back": "Back",
+      "next": "Next",
+      "loading": "Loading...",
+      "error": "An error occurred",
+      "success": "Successfully completed"
+    },
+    
+    "contract": {
+      "title": "Contract",
+      "serviceContract": "Service Agreement",
+      "createContract": "Create Contract",
+      "contractNumber": "Contract Number",
+      "contractDate": "Contract Date",
+      "signContract": "Sign Contract",
+      "contractStatus": "Contract Status",
+      "contractHistory": "Contract History",
+      
+      "parties": {
+        "client": "Client (Party A)",
+        "contractor": "Contractor (Party B)",
+        "representative": "Representative",
+        "companyName": "Company Name",
+        "address": "Address",
+        "contact": "Contact",
+        "businessNumber": "Business Registration Number"
+      },
+      
+      "sections": {
+        "basicTerms": "Basic Contract Terms",
+        "scope": "Scope of Work",
+        "financial": "Payment Terms",
+        "timeline": "Timeline and Deadlines",
+        "intellectualProperty": "Intellectual Property",
+        "modification": "Modifications and Changes",
+        "quality": "Quality and Acceptance",
+        "confidentiality": "Confidentiality",
+        "termination": "Contract Termination",
+        "liability": "Liability and Indemnification",
+        "dispute": "Dispute Resolution",
+        "general": "General Provisions"
+      },
+      
+      "payment": {
+        "totalAmount": "Total Contract Amount",
+        "installment": "Installment Payment",
+        "lumpSum": "Lump Sum Payment",
+        "advance": "Advance Payment",
+        "firstPayment": "First Payment",
+        "secondPayment": "Second Payment",
+        "finalPayment": "Final Payment",
+        "paymentRatio": "Payment Ratio",
+        "paymentMethod": "Payment Method",
+        "bankTransfer": "Bank Transfer",
+        "creditCard": "Credit Card",
+        "cash": "Cash",
+        "paymentDue": "Payment Due",
+        "overdue": "Overdue",
+        "penalty": "Late Payment Penalty"
+      },
+      
+      "project": {
+        "projectTitle": "Project Title",
+        "projectDescription": "Project Description",
+        "deliverables": "Deliverables",
+        "startDate": "Start Date",
+        "endDate": "End Date",
+        "duration": "Duration",
+        "milestone": "Milestone",
+        "workLocation": "Work Location",
+        "communicationMethod": "Communication Method"
+      },
+      
+      "clauses": {
+        "required": "Required Clauses",
+        "recommended": "Recommended Clauses",
+        "optional": "Optional Clauses",
+        "riskLevel": "Risk Level",
+        "low": "Low",
+        "medium": "Medium",
+        "high": "High",
+        "clauseExplanation": "Clause Explanation",
+        "whyNeeded": "Why This is Needed",
+        "whenUseful": "When This is Useful",
+        "potentialRisk": "Potential Risk"
+      },
+      
+      "validation": {
+        "missingRequired": "Required clauses are missing",
+        "conflictingClauses": "Conflicting clauses detected",
+        "highRiskWarning": "High-risk clauses included",
+        "contractScore": "Contract Completeness Score",
+        "validationPassed": "Validation Passed",
+        "validationFailed": "Validation Failed",
+        "recommendedChanges": "Recommended Changes"
+      },
+      
+      "signature": {
+        "digitalSignature": "Digital Signature",
+        "signHere": "Sign Here",
+        "signatureDate": "Signature Date",
+        "signerName": "Signer Name",
+        "signerTitle": "Title",
+        "companySeal": "Company Seal",
+        "signatureRequired": "Signature Required",
+        "bothPartiesSigned": "Both Parties Signed",
+        "waitingForSignature": "Waiting for Signature",
+        "signatureExpired": "Signature Expired",
+        "resendSignatureRequest": "Resend Signature Request"
+      }
+    },
+    
+    "estimate": {
+      "title": "Estimate",
+      "createEstimate": "Create Estimate",
+      "estimateNumber": "Estimate Number",
+      "estimateDate": "Estimate Date",
+      "validUntil": "Valid Until",
+      "sendEstimate": "Send Estimate",
+      "estimateStatus": "Estimate Status",
+      "estimateHistory": "Estimate History",
+      
+      "status": {
+        "draft": "Draft",
+        "sent": "Sent",
+        "viewed": "Viewed",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "expired": "Expired",
+        "contracted": "Contracted"
+      },
+      
+      "services": {
+        "selectedServices": "Selected Services",
+        "addService": "Add Service",
+        "removeService": "Remove Service",
+        "serviceCategory": "Service Category",
+        "serviceDescription": "Service Description",
+        "quantity": "Quantity",
+        "unitPrice": "Unit Price",
+        "totalPrice": "Total Price",
+        "serviceOptions": "Service Options"
+      },
+      
+      "calculation": {
+        "subtotal": "Subtotal",
+        "discount": "Discount",
+        "discountRate": "Discount Rate",
+        "discountAmount": "Discount Amount",
+        "taxAmount": "Tax Amount",
+        "totalAmount": "Total Amount",
+        "applyDiscount": "Apply Discount",
+        "removeDiscount": "Remove Discount"
+      },
+      
+      "customer": {
+        "customerInfo": "Customer Information",
+        "customerName": "Customer Name",
+        "customerEmail": "Customer Email",
+        "customerPhone": "Customer Phone",
+        "customerCompany": "Customer Company",
+        "customerAddress": "Customer Address",
+        "customerRequirements": "Customer Requirements"
+      }
+    },
+    
+    "profile": {
+      "title": "Profile",
+      "editProfile": "Edit Profile",
+      "digitalCard": "Digital Business Card",
+      "portfolio": "Portfolio",
+      "reviews": "Reviews",
+      "successRate": "Success Rate",
+      "completedProjects": "Completed Projects",
+      "clientSatisfaction": "Client Satisfaction",
+      
+      "personalInfo": {
+        "name": "Name",
+        "title": "Title",
+        "company": "Company",
+        "bio": "Bio",
+        "expertise": "Expertise",
+        "experience": "Experience",
+        "education": "Education",
+        "certifications": "Certifications"
+      },
+      
+      "contact": {
+        "email": "Email",
+        "phone": "Phone",
+        "website": "Website",
+        "linkedin": "LinkedIn",
+        "github": "GitHub",
+        "behance": "Behance",
+        "instagram": "Instagram",
+        "youtube": "YouTube"
+      },
+      
+      "portfolio": {
+        "addProject": "Add Project",
+        "projectTitle": "Project Title",
+        "projectDescription": "Project Description",
+        "projectImages": "Project Images",
+        "projectUrl": "Project URL",
+        "technologies": "Technologies Used",
+        "clientName": "Client Name",
+        "completionDate": "Completion Date",
+        "projectCategory": "Project Category"
+      }
+    },
+    
+    "notifications": {
+      "estimateCreated": "Estimate has been created",
+      "estimateSent": "Estimate has been sent",
+      "estimateApproved": "Estimate has been approved",
+      "contractCreated": "Contract has been created",
+      "contractSigned": "Contract has been signed",
+      "paymentReceived": "Payment has been received",
+      "projectCompleted": "Project has been completed",
+      "reminderPayment": "Payment reminder",
+      "reminderDeadline": "Deadline reminder"
+    },
+    
+    "errors": {
+      "requiredField": "This field is required",
+      "invalidEmail": "Please enter a valid email address",
+      "invalidPhone": "Please enter a valid phone number",
+      "invalidDate": "Please enter a valid date",
+      "invalidAmount": "Please enter a valid amount",
+      "networkError": "Network error occurred",
+      "serverError": "Server error occurred",
+      "unauthorized": "Unauthorized access",
+      "sessionExpired": "Session has expired"
+    },
+    
+    "success": {
+      "saved": "Saved successfully",
+      "sent": "Sent successfully",
+      "updated": "Updated successfully",
+      "deleted": "Deleted successfully",
+      "created": "Created successfully",
+      "signed": "Signed successfully",
+      "approved": "Approved successfully"
+    }

@@ -1,0 +1,191 @@
+/* 🔥 CSS 변수 정의 (기존 스타일 위에 추가) */
+:root {
+  /* Primary Colors */
+  --color-primary: #8B5CF6;
+  --color-primary-light: #DDD6FE;
+  --color-primary-dark: #7C3AED;
+  
+  /* Surface Colors */
+  --color-surface: #FFFFFF;
+  --color-surface-elevated: #FFFFFF;
+  --color-surface-hover: #F8FAFC;
+  --color-surface-active: #F1F5F9;
+  
+  /* Text Colors */
+  --color-text-primary: #1F2937;
+  --color-text-secondary: #6B7280;
+  --color-text-tertiary: #9CA3AF;
+  
+  /* Border & Semantic Colors */
+  --color-border: #E5E7EB;
+  --color-success: #10B981;
+  --color-success-light: #D1FAE5;
+  --color-warning: #F59E0B;
+  --color-warning-light: #FEF3C7;
+  --color-danger: #EF4444;
+  --color-danger-light: #FEE2E2;
+  
+  /* Background */
+  --color-bg-base: #F9FAFB;
+}
+
+/* 다크 모드 */
+[data-theme="dark"] {
+  --color-primary: #A78BFA;
+  --color-primary-light: #312E81;
+  --color-primary-dark: #C4B5FD;
+  
+  --color-surface: #1F2937;
+  --color-surface-elevated: #374151;
+  --color-surface-hover: #4B5563;
+  --color-surface-active: #6B7280;
+  
+  --color-text-primary: #F9FAFB;
+  --color-text-secondary: #D1D5DB;
+  --color-text-tertiary: #9CA3AF;
+  
+  --color-border: #4B5563;
+  --color-success: #34D399;
+  --color-success-light: #064E3B;
+  --color-warning: #FBBF24;
+  --color-warning-light: #451A03;
+  --color-danger: #F87171;
+  --color-danger-light: #7F1D1D;
+  
+  --color-bg-base: #111827;
+}
+
+/* 🔥 Tailwind CSS 변수 매핑 */
+@layer utilities {
+  .bg-surface { background-color: var(--color-surface); }
+  .bg-surface-elevated { background-color: var(--color-surface-elevated); }
+  .bg-surface-hover { background-color: var(--color-surface-hover); }
+  .bg-surface-active { background-color: var(--color-surface-active); }
+  .bg-primary { background-color: var(--color-primary); }
+  .bg-primary-light { background-color: var(--color-primary-light); }
+  .bg-success { background-color: var(--color-success); }
+  .bg-success-light { background-color: var(--color-success-light); }
+  .bg-warning { background-color: var(--color-warning); }
+  .bg-warning-light { background-color: var(--color-warning-light); }
+  .bg-danger { background-color: var(--color-danger); }
+  .bg-danger-light { background-color: var(--color-danger-light); }
+  
+  .text-text-primary { color: var(--color-text-primary); }
+  .text-text-secondary { color: var(--color-text-secondary); }
+  .text-text-tertiary { color: var(--color-text-tertiary); }
+  .text-primary { color: var(--color-primary); }
+  .text-success { color: var(--color-success); }
+  .text-warning { color: var(--color-warning); }
+  .text-danger { color: var(--color-danger); }
+  
+  .border-border { border-color: var(--color-border); }
+}
+
+/* === 기존 스타일 유지 === */
+
+/* 한국어 폰트 우선 적용 */
+* {
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif !important;
+}
+
+body {
+  font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif !important;
+}
+
+/* 기본 리셋 및 한국어 폰트 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', -apple-system, BlinkMacSystemFont, sans-serif;
+  line-height: 1.6;
+  color: var(--color-text-primary); /* 🔥 CSS 변수 적용 */
+  background-color: var(--color-bg-base); /* 🔥 CSS 변수 적용 */
+  transition: background-color 0.3s ease, color 0.3s ease; /* 🔥 부드러운 테마 전환 */
+}
+
+/* 계약서 전용 스타일 */
+.contract-content {
+  font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif;
+  line-height: 1.8;
+  color: var(--color-text-primary); /* 🔥 CSS 변수 적용 */
+  font-size: 14px;
+  background-color: var(--color-surface); /* 🔥 CSS 변수 적용 */
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* 🔥 스크롤바 다크모드 지원 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--color-surface-hover);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-tertiary);
+}
+
+/* 인쇄용 스타일 */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .contract-content {
+    font-size: 12pt;
+    line-height: 1.6;
+    color: #000 !important; /* 인쇄 시 강제 검정색 */
+    background-color: white !important;
+  }
+  
+  body {
+    background-color: white !important;
+    color: #000 !important;
+  }
+  
+  /* 🔥 인쇄 시 다크모드 비활성화 */
+  [data-theme="dark"] {
+    --color-surface: #FFFFFF;
+    --color-text-primary: #000000;
+    --color-bg-base: #FFFFFF;
+  }
+}
+
+/* 🔥 부드러운 전환 애니메이션 */
+* {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+/* 🔥 접근성 개선 */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* 🔥 포커스 스타일 개선 */
+button:focus,
+input:focus,
+textarea:focus,
+select:focus {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* 🔥 선택 텍스트 스타일 */
+::selection {
+  background-color: var(--color-primary-light);
+  color: var(--color-primary-dark);
+}

@@ -1,0 +1,514 @@
+// schema.prisma - SaaS DB 스키마 (카테고리 시스템 추가)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// 핵심 사용자 모델
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique  // 로그인용 고유 ID (추가)
+  email     String   @unique
+  password  String
+  name      String              // 실제 사용자 이름
+  role      String   @default("freelancer")
+  createdAt DateTime @default(now())
+  
+  profile    Profile?
+  services   Service[]
+  serviceCategories ServiceCategory[] 
+  clients    Client[]
+  quotes     Quote[]
+  contracts  Contract[]
+  reviews    Review[]   @relation("UserReviews")
+  portfolio  Portfolio[]
+  publicPage PublicPage?
+  
+  // 템플릿 시스템 관련 추가
+  uploadedContracts SourceContract[] @relation("UploadedBy")
+  reviewedTemplates ContractTemplate[] @relation("ReviewedBy")
+  contractTemplates ContractTemplate[]
+  
+  // 서비스 공유 관련 추가
+  sharedServices    SharedService[]
+}
+
+// 프로필 & 소개
+model Profile {
+  id          Int     @id @default(autoincrement())
+  userId      Int     @unique
+  
+  // 담당자 정보
+  contactName  String?
+  contactPhone String?
+  contactEmail String?
+  
+  // 회사 정보
+  companyName    String?
+  ceoName        String?
+  businessNumber String?
+  companyPhone   String?
+  companyEmail   String?
+  companyAddress String?
+  businessType   String?  // 업태 (도매업, 소매업, 서비스업 등)
+  businessItem   String?  // 종목 (웹개발, 디자인, 마케팅 등)
+  companyFax     String?  // 팩스번호
+  
+  // 서명 정보 추가
+  signatureImage String?  // 사인 이미지 URL
+  stampImage     String?  // 도장 이미지 URL
+  
+  // 기존 필드
+  bio         String?
+  website     String?
+  youtube     String?
+  snsLinks    String? // JSON string
+  phone       String?
+  address     String?
+  profileCard String? // JSON string
+  
+  // 계좌 정보 추가 (AI 계약서에서 사용)
+  bankName      String?
+  accountNumber String?
+  accountHolder String?
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// 카테고리 관리 (수정됨)
+model ServiceCategory {
+  id            String   @id // "store-creation", "seo-services" 등
+  userId        Int
+  name          String   // "쇼피파이 스토어 제작", "SEO 서비스" 등
+  type          String   // "plan" 또는 "standard"  
+  order         Int      @default(0) // 카테고리 표시 순서
+  contractTitle String?  // 기본 계약서 제목
+  addonOnlyTitle String? // 추가서비스만 계약시 제목
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  services Service[]
+  
+  @@unique([userId, id])
+}
+
+// 서비스 관리 (수정됨)
+model Service {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  categoryId      String
+  title           String
+  description     String
+  price           Float?
+  planLevel       String?
+  duration        String?
+  images          String?    // 이 줄 추가 (기존 image 필드 대신)
+  features        String?
+  tags           String?
+  deliverables    String?
+  packages        String?
+  order          Int      @default(0)
+  isPlan      Boolean @default(false)
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category ServiceCategory @relation(fields: [userId, categoryId], references: [userId, id], onDelete: Cascade)
+  quotes   Quote[]
+  
+  // 공유 관련 추가
+  sharedIn SharedService[] @relation("SharedServices")
+}
+
+// 고객 관리 (Soft Delete 필드 추가)
+model Client {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  email     String
+  name      String
+  phone     String?
+  company   String?
+  position  String?
+  serviceCategory String?
+  serviceDescription String?
+  websiteUrl String?
+  memo      String?
+  businessNumber String?     // 고객사 사업자번호 (기존)
+  companyAddress String?     // 회사주소 (새로 추가)
+  companyPhone   String?     // 회사 전화번호 (새로 추가)
+  
+  // Soft Delete 필드 추가
+  deleted   Boolean  @default(false)
+  deletedAt DateTime?
+  
+  createdAt DateTime @default(now())
+  
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quotes    Quote[]
+  contracts Contract[]
+  
+  @@unique([userId, email])
+}
+
+// 견적 관리 (AI 견적 지원 강화)
+model Quote {
+  id          Int      @id @default(autoincrement())
+  userId      Int?     // nullable로 변경 (AI 견적용)
+  clientId    Int?     // 이미 nullable
+  serviceId   Int?     // 이미 nullable
+  
+  // 기본 정보
+  title       String?  // 견적서 제목
+  status      String   @default("draft")
+  amount      Float?
+  items       String?  // JSON string - 견적 항목들
+  validUntil  DateTime?
+  notes       String?
+  
+  // AI 견적 지원 필드
+  type        String   @default("manual") // "manual" | "ai_generated"
+  metadata    String?  // JSON - AI 분석 결과, 원본 요청 등
+  
+  // 타임스탬프
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client      Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  service     Service? @relation(fields: [serviceId], references: [id])
+  contracts   Contract[]
+
+  @@map("quotes")
+}
+
+// 계약 관리 (templateId 필드 추가)
+model Contract {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  clientId  Int
+  quoteId   Int?
+  templateId Int?   // 템플릿 ID 추가
+  
+  title     String?  // 계약서 제목
+  type      String   @default("manual") // "manual" | "auto_generated" | "template_generated"
+  status    String   @default("pending")
+  amount    Float?   // 계약 금액
+  content   String?  // JSON string
+  metadata  String?  // JSON - AI 생성 정보, 템플릿 타입 등
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user       User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  client     Client              @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  quote      Quote?              @relation(fields: [quoteId], references: [id])
+  template   ContractTemplate?   @relation(fields: [templateId], references: [id]) // 템플릿 관계 추가
+  clauses    Clause[]
+  signatures Signature[]
+  progress   ContractProgress[]
+  reviews    Review[]
+  signTokens SignToken[]
+  checklists ContractChecklist[]
+}
+
+// 새로 추가할 SignToken 모델
+model SignToken {
+  id         Int      @id @default(autoincrement())
+  contractId Int
+  token      String   @unique
+  signerType String   // "client" or "freelancer"
+  email      String   // 서명자 이메일
+  otp        String?  // OTP 코드
+  otpExpiry  DateTime? // OTP 만료 시간 (5분)
+  isUsed     Boolean  @default(false)
+  expiresAt  DateTime // 토큰 만료 시간 (24시간)
+  createdAt  DateTime @default(now())
+  
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+}
+
+// 계약 조항 (title, essential 필드 추가)
+model Clause {
+  id         Int     @id @default(autoincrement())
+  contractId Int
+  title      String? // 조항 제목 추가
+  type       String
+  content    String
+  essential  Boolean @default(false) // 필수 조항 여부 추가
+  order      Int     @default(0)
+  
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+}
+
+// 전자서명 (이미지 URL 추가)
+model Signature {
+  id            Int      @id @default(autoincrement())
+  contractId    Int
+  signerType    String   // "freelancer" or "client"
+  signerName    String
+  signerEmail   String
+  signatureData String?  // Canvas 서명 데이터 또는 이미지 URL
+  signatureType String?  // "canvas", "image", "stamp"
+  signedAt      DateTime @default(now())
+  
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+}
+
+// 계약 진행상황
+model ContractProgress {
+  id         Int     @id @default(autoincrement())
+  contractId Int
+  task       String
+  completed  Boolean @default(false)
+  order      Int     @default(0)
+  
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+}
+
+// 계약 체크리스트 (서비스 완료 확인용)
+model ContractChecklist {
+  id         Int      @id @default(autoincrement())
+  contractId Int
+  title      String   // "도메인 연결", "제품 등록 10개" 등
+  description String? // 상세 설명
+  category   String   // "setup", "content", "testing", "delivery" 등
+  order      Int      @default(0)
+  completed  Boolean  @default(false)
+  completedAt DateTime?
+  requiresSignature Boolean @default(false) // 발주자 서명 필요 여부
+  signature  String?  // 서명 데이터
+  signedAt   DateTime?
+  createdAt  DateTime @default(now())
+  
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+}
+
+// 리뷰 & 평점
+model Review {
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  contractId Int
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+  
+  user     User     @relation("UserReviews", fields: [userId], references: [id], onDelete: Cascade)
+  contract Contract @relation(fields: [contractId], references: [id], onDelete: Cascade)
+}
+
+// 포트폴리오
+model Portfolio {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  title       String
+  description String?
+  link        String?
+  imageUrl    String?
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// 공개 페이지
+model PublicPage {
+  id       Int     @id @default(autoincrement())
+  userId   Int     @unique
+  slug     String  @unique
+  theme    String  @default("default")
+  isActive Boolean @default(true)
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ============ 템플릿 시스템 테이블들 ============
+
+// 원본 계약서 저장소 (120개 업로드용)
+model SourceContract {
+  id            Int      @id @default(autoincrement())
+  filename      String   @unique
+  title         String?
+  fullText      String   // 전체 텍스트
+  metadata      String?  // JSON - 파일 정보, 분석 결과 등
+  clauseCount   Int      @default(0)
+  uploadedBy    Int
+  status        String   @default("uploaded") // "uploaded" | "processing" | "processed" | "failed"
+  processedAt   DateTime?
+  analysisResult String? // JSON - 분석 요약
+  createdAt     DateTime @default(now())
+  
+  uploader User @relation("UploadedBy", fields: [uploadedBy], references: [id])
+  candidates ClauseCandidate[]
+}
+
+// ClauseCandidate 모델 수정 - 카테고리 필드 분리
+model ClauseCandidate {
+  id               Int      @id @default(autoincrement())
+  title            String
+  content          String
+  contractCategory String   // 계약서 대분류: '용역/프로젝트', '거래/구매', '비밀/보안' 등 (7개)
+  clauseCategory   String?  // 조항 기능 분류: '계약의 목적', '대금 지급 조건' 등 (세분화)
+  sourceContract   String   // 원본 파일명
+  sourceId         Int?     // SourceContract ID
+  confidence       Float    @default(0.5) // AI 신뢰도 점수
+  tags             String?  // JSON array - 태그들
+  variables        String?  // JSON array - 추출된 변수들
+  similarity       Float?   // 기존 조항과의 유사도
+  needsReview      Boolean  @default(true)
+  reviewedAt       DateTime?
+  status           String   @default("pending") // "pending" | "approved" | "rejected"
+  createdAt        DateTime @default(now())
+  
+  source SourceContract? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+}
+
+// 계약서 템플릿 (API와 호환되도록 수정)
+model ContractTemplate {
+  id           Int      @id @default(autoincrement())
+  name         String   // title → name 변경
+  description  String?  // 새로 추가
+  content      String   // 템플릿 내용 (변수 포함)
+  category     String   // 템플릿 카테고리 (ClauseCategory 참조)
+  variables    String?  // JSON array - 템플릿 변수 정의
+  clauses      String?  // JSON array - 조항 정보
+  status       String   @default("active") // 새로 추가
+  userId       Int      // 생성자 ID
+  
+  // 기존 필드들 (선택적 유지)
+  type         String?  // "standard" | "flexible"
+  tags         String?  // JSON array - 검색용 태그
+  industry     String?  // 적용 업종
+  complexity   String?  // "simple" | "standard" | "complex"
+  confidence   Float    @default(1.0)
+  usageCount   Int      @default(0) // 사용 횟수
+  popularity   Float    @default(0.0) // 인기도 점수
+  lastUsed     DateTime?
+  reviewedBy   Int?     // 검토자
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  user         User     @relation(fields: [userId], references: [id])
+  reviewer     User?    @relation("ReviewedBy", fields: [reviewedBy], references: [id])
+  contracts    Contract[]
+  
+  @@index([category, status])
+  @@index([industry, complexity])
+  @@index([popularity])
+}
+
+// 템플릿 매칭 로그 (사용 패턴 분석용)
+model TemplateMatchLog {
+  id            Int      @id @default(autoincrement())
+  quoteId       Int?
+  contractId    Int?
+  industry      String?
+  serviceType   String?
+  amount        Float?
+  complexity    String?
+  matchedTemplates String? // JSON array - 매칭된 템플릿 IDs
+  selectedTemplate Int?
+  satisfaction  Int?     // 1-5 사용자 만족도
+  createdAt     DateTime @default(now())
+}
+
+// ============ 하이브리드 카테고리 시스템 ============
+
+// 조항 카테고리 (기본 세트 + 확장)
+model ClauseCategory {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique // "거래/구매", "용역/프로젝트" 등
+  level       Int      @default(1) // 1: 대분류, 2: 소분류
+  parentId    Int? // 상위 카테고리 ID (계층 구조)
+  description String? // 카테고리 설명
+  isActive    Boolean  @default(true)
+  isDefault   Boolean  @default(false) // 기본 카테고리 여부
+  usageCount  Int      @default(0) // 사용 횟수
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // 자기 참조 관계 (부모-자식)
+  parent   ClauseCategory? @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children ClauseCategory[] @relation("CategoryHierarchy")
+  
+  @@index([level, isActive])
+  @@index([parentId])
+}
+
+// 제안된 카테고리 (GPT 제안 → 관리자 승인)
+model ProposedCategory {
+  id             Int      @id @default(autoincrement())
+  name           String
+  description    String?
+  suggestedBy    String   @default("gpt") // "gpt" | "user"
+  sourceTemplate String? // 제안된 템플릿명
+  parentId       Int? // 제안된 상위 카테고리
+  confidence     Float    @default(0.7) // GPT 제안 신뢰도
+  status         String   @default("pending") // "pending" | "approved" | "rejected"
+  adminNotes     String? // 관리자 검토 메모
+  createdAt      DateTime @default(now())
+  reviewedAt     DateTime?
+  
+  @@index([status])
+  @@index([suggestedBy])
+}
+
+// ============ 서비스 공유 시스템 ============
+
+// 공유된 서비스 링크
+model SharedService {
+  id            Int      @id @default(autoincrement())
+  userId        Int      // 링크 생성자
+  token         String   @unique // 공유 토큰 (URL에 사용)
+  title         String   // 공유 페이지 제목
+  description   String?  // 공유 페이지 설명
+  thumbnailImage String? // 썸네일 이미지 URL
+  
+  // OG 태그 설정
+  ogTitle       String?  // Open Graph 제목
+  ogDescription String?  // Open Graph 설명  
+  ogImage       String?  // Open Graph 이미지
+  
+  // 접근 제어
+  password      String?  // 해시된 비밀번호
+  expiryDate    DateTime? // 만료일
+  isActive      Boolean  @default(true) // 활성 상태
+  
+  // 통계
+  viewCount     Int      @default(0) // 조회수
+  lastViewedAt  DateTime? // 마지막 조회일
+  
+  // 타임스탬프
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // 관계
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  services      Service[] @relation("SharedServices") // 공유된 서비스들 (Many-to-Many)
+  views         SharedServiceView[] // 조회 기록
+  
+  @@index([token])
+  @@index([userId])
+  @@index([isActive])
+  @@index([expiryDate])
+}
+
+// 공유 서비스 조회 기록
+model SharedServiceView {
+  id             Int      @id @default(autoincrement())
+  sharedServiceId Int
+  ipAddress      String   // 조회자 IP
+  userAgent      String?  // 브라우저 정보
+  referer        String?  // 유입 경로
+  viewedAt       DateTime @default(now())
+  
+  sharedService  SharedService @relation(fields: [sharedServiceId], references: [id], onDelete: Cascade)
+  
+  @@index([sharedServiceId])
+  @@index([viewedAt])
+}
