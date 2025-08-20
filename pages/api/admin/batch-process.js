@@ -228,4 +228,61 @@ async function handleBatchProcess(contractIds, res) {
         filename: sourceContract.filename,
         totalClauses: analysisResult.results.length,
         savedClauses: savedClauseIds.length,
-        duplicates: analysisResult.results.filter(r => r.
+        duplicates: analysisResult.results.filter(r => r.analysis?.isDuplicate).length
+      });
+
+    } catch (error) {
+      console.error(`계약서 ${contractId} 처리 오류:`, error);
+      results.push({
+        contractId,
+        status: 'error',
+        message: error.message
+      });
+    }
+  }
+
+  return res.status(200).json({
+    success: true,
+    message: `${contractIds.length}개 계약서 일괄 처리 완료`,
+    results,
+    summary: {
+      total: contractIds.length,
+      processed: results.filter(r => r.status === 'processed').length,
+      failed: results.filter(r => r.status === 'error').length,
+      totalClauses,
+      savedClauses
+    }
+  });
+}
+
+// 처리 상태 조회
+async function handleGetStatus(res) {
+  try {
+    const stats = await prisma.sourceContract.groupBy({
+      by: ['status'],
+      _count: true
+    });
+
+    const totalCandidates = await prisma.clauseCandidate.count();
+    const approvedClauses = await prisma.contractTemplate.count();
+
+    return res.status(200).json({
+      success: true,
+      stats: {
+        contracts: stats.reduce((acc, stat) => {
+          acc[stat.status] = stat._count;
+          return acc;
+        }, {}),
+        candidates: totalCandidates,
+        approved: approvedClauses
+      }
+    });
+
+  } catch (error) {
+    console.error('상태 조회 오류:', error);
+    return res.status(500).json({
+      error: '상태 조회 실패',
+      details: error.message
+    });
+  }
+}
