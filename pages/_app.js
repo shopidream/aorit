@@ -2,11 +2,12 @@
 import Head from 'next/head';
 import React from 'react';
 import { useRouter } from 'next/router';
+import { SessionProvider } from 'next-auth/react';
 import '../styles/globals.css';
 import { AuthProvider } from '../contexts/AuthContext';
 import Layout from '../components/layout/Layout';
 
-export default function App({ Component, pageProps }) {
+export default function App({ Component, pageProps: { session, ...pageProps } }) {
   const router = useRouter();
   
   // 레이아웃 제외 페이지 (고객용 및 인증 페이지)
@@ -27,18 +28,20 @@ export default function App({ Component, pageProps }) {
   );
 
   return (
-    <AuthProvider>
-      <Head>
-        <link rel="icon" href="/images/aorit-favicon.png" />
-        <title>Aorit - 간편한 온라인 견적과 계약</title>
-      </Head>
-      {shouldShowLayout ? (
-        <Layout>
+    <SessionProvider session={session}>
+      <AuthProvider>
+        <Head>
+          <link rel="icon" href="/images/aorit-favicon.png" />
+          <title>Aorit - 간편한 온라인 견적과 계약</title>
+        </Head>
+        {shouldShowLayout ? (
+          <Layout>
+            <Component {...pageProps} />
+          </Layout>
+        ) : (
           <Component {...pageProps} />
-        </Layout>
-      ) : (
-        <Component {...pageProps} />
-      )}
-    </AuthProvider>
+        )}
+      </AuthProvider>
+    </SessionProvider>
   );
 }

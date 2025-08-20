@@ -1,45 +1,109 @@
-// contexts/AuthContext.js - 인증 컨텍스트 (401 자동 로그아웃 처리 추가)
+// contexts/AuthContext.js - JWT 토큰 통합 인증 컨텍스트
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useSession, signOut } from 'next-auth/react';
 
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const { data: session, status } = useSession();
+
+  // NextAuth 세션을 JWT 토큰으로 변환
+  const convertSessionToJWT = async (sessionUser) => {
+    try {
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: sessionUser.email,
+          isNextAuth: true
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        
+        // localStorage에 토큰 저장
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        return data.user;
+      }
+    } catch (error) {
+      console.error('JWT 토큰 생성 실패:', error);
+    }
+    return null;
+  };
 
   useEffect(() => {
-    // 브라우저에서만 실행
-    if (typeof window !== 'undefined') {
-      try {
-        const token = localStorage.getItem('token');
-        const savedUser = localStorage.getItem('user');
+    if (status === 'loading') return;
+
+    const initializeAuth = async () => {
+      // NextAuth 세션이 있는 경우
+      if (session?.user) {
+        const existingToken = localStorage.getItem('token');
         
-        if (token && savedUser) {
-          const userData = JSON.parse(savedUser);
-          setUser(userData);
-          console.log('저장된 사용자 정보:', userData);
+        // 이미 JWT 토큰이 있으면 재사용
+        if (existingToken) {
+          try {
+            const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+            if (savedUser.email === session.user.email) {
+              setUser(savedUser);
+              setLoading(false);
+              return;
+            }
+          } catch (error) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+          }
         }
-      } catch (error) {
-        console.error('사용자 정보 로드 실패:', error);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+
+        // JWT 토큰 생성
+        const jwtUser = await convertSessionToJWT(session.user);
+        if (jwtUser) {
+          setUser(jwtUser);
+        }
+        setLoading(false);
+        return;
       }
-    }
-    setLoading(false);
-  }, []);
+
+      // NextAuth 세션이 없으면 localStorage 확인
+      if (typeof window !== 'undefined') {
+        try {
+          const token = localStorage.getItem('token');
+          const savedUser = localStorage.getItem('user');
+          
+          if (token && savedUser) {
+            const userData = JSON.parse(savedUser);
+            setUser(userData);
+          }
+        } catch (error) {
+          console.error('사용자 정보 로드 실패:', error);
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
+      }
+      setLoading(false);
+    };
+
+    initializeAuth();
+  }, [session, status]);
 
   const login = (userData) => {
-    console.log('로그인:', userData);
     setUser(userData);
   };
 
-  const logout = () => {
-    console.log('로그아웃');
+  const logout = async () => {
+    if (session) {
+      await signOut({ redirect: false });
+    }
+    
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      // 쿠키도 삭제
       document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+      window.location.href = '/';
     }
     setUser(null);
   };
@@ -52,7 +116,6 @@ export function AuthProvider({ children }) {
     return {};
   };
 
-  // 401 자동 로그아웃 처리를 위한 fetch 래퍼
   const authenticatedFetch = async (url, options = {}) => {
     const authHeaders = getAuthHeaders();
     
@@ -64,15 +127,8 @@ export function AuthProvider({ children }) {
       }
     });
 
-    // 401 응답 시 자동 로그아웃
     if (response.status === 401) {
-      console.warn('토큰이 만료되었습니다. 자동 로그아웃 처리합니다.');
-      logout();
-      
-      // 로그인 페이지로 리다이렉트 (옵션)
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
-      }
+      await logout();
     }
 
     return response;
@@ -80,23 +136,13 @@ export function AuthProvider({ children }) {
 
   const value = {
     user,
-    loading,
+    loading: loading || status === 'loading',
     isAuthenticated: !!user,
     login,
     logout,
     getAuthHeaders,
-    authenticatedFetch // 새로운 함수 추가
+    authenticatedFetch
   };
-
-  // 로그를 한 번만 출력 (디버깅용)
-  useEffect(() => {
-    console.log('AuthContext 초기화 완료:', { 
-      username: user?.username,  // username 필드 확인
-      name: user?.name,          // 실제 이름
-      loading, 
-      isAuthenticated: !!user 
-    });
-  }, [user, loading]);
 
   return (
     <AuthContext.Provider value={value}>
