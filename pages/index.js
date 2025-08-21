@@ -31,6 +31,11 @@ export default function LandingPage() {
   const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [showVideoModal, setShowVideoModal] = useState(false);
+  const [showServiceModal, setShowServiceModal] = useState(false);
+  const [serviceInput, setServiceInput] = useState('');
+  const [generatedServices, setGeneratedServices] = useState(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState('');
 
   useEffect(() => {
     setMounted(true);
@@ -46,6 +51,63 @@ export default function LandingPage() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isAuthenticated, loading, router]);
+
+  // 예시 카드 클릭 핸들러
+  const handleExampleClick = (text) => {
+    setServiceInput(text);
+  };
+
+  // 서비스 생성 핸들러
+  const handleGenerateService = async () => {
+    if (!serviceInput.trim()) return;
+    
+    setIsGenerating(true);
+    setError('');
+    
+    try {
+      const response = await fetch('/api/ai/generate-services', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ businessDescription: serviceInput })
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setGeneratedServices(data.services || data.suggestedServices);
+        setShowServiceModal(true);
+      } else {
+        setError(data.error || 'AI 서비스 생성에 실패했습니다');
+      }
+    } catch (error) {
+      console.error('서비스 생성 실패:', error);
+      setError('서비스 생성 중 오류가 발생했습니다');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // 서비스 추가 핸들러 (개별 서비스)
+  const handleAddService = (service) => {
+    localStorage.setItem('pendingService', JSON.stringify(service));
+    router.push('/login?from=service-generation');
+  };
+
+  // 카테고리 이름 매핑
+  const getCategoryName = (categoryId) => {
+    const categoryMap = {
+      'cleaning': '청소',
+      'education': '교육', 
+      'design': '디자인',
+      'development': '개발',
+      'marketing': '마케팅',
+      'consulting': '컨설팅',
+      'others': '기타'
+    };
+    return categoryMap[categoryId] || '전문서비스';
+  };
 
   if (!mounted) return null;
   if (loading) return <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100" />;
@@ -122,17 +184,13 @@ export default function LandingPage() {
             ></iframe>
             
             {/* 그라데이션 오버레이 */}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/85 to-black/95"></div>
+            <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/90 to-black/95"></div>
             <div className="absolute inset-0 bg-gradient-to-r from-blue-900/30 via-black/20 to-purple-900/30"></div>
           </div>
 
           {/* Hero 콘텐츠 */}
           <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            {/* 베타 배지 */}
-            <div className="inline-flex items-center px-4 py-2 mb-8 backdrop-blur-xl bg-gradient-to-r from-purple-600/40 to-pink-600/40 border border-white/40 rounded-full shadow-lg">
-              <Sparkles className="w-4 h-4 text-yellow-300 mr-2" />
-              <span className="text-sm font-medium text-white">베타 버전 출시</span>
-            </div>
+            
 
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-8 drop-shadow-2xl">
               AI로 만드는{' '}
@@ -142,8 +200,8 @@ export default function LandingPage() {
             </h1>
             
             <p className="text-lg md:text-xl lg:text-2xl text-white/90 mb-12 max-w-4xl mx-auto leading-relaxed drop-shadow-lg">
-              수천 개 계약 사례를 학습한 AI가{' '}
-              <span className="font-semibold text-yellow-300">단 5분</span>만에 견적과 계약을 완료합니다
+            수만개의 계약 데이터를 기반으로, 누구나{' '}
+              <span className="font-semibold text-yellow-300">단 5분</span>만에 계약 완료
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
@@ -200,25 +258,25 @@ export default function LandingPage() {
                   step: "01",
                   icon: <FileText className="w-8 h-8" />,
                   title: "서비스 등록",
-                  description: "제공하는 서비스를 AI가 분석하여 자동으로 등록합니다"
+                  description: "한 줄만 적으면, 서비스가 자동으로 정리됩니다."
                 },
                 {
                   step: "02", 
                   icon: <TrendingUp className="w-8 h-8" />,
                   title: "견적서 생성",
-                  description: "고객 정보만 입력하면 전문적인 견적서가 자동 완성됩니다"
+                  description: "서비스를 선택하면, 전문적인 견적서가 바로 완성됩니다."
                 },
                 {
                   step: "03",
                   icon: <Shield className="w-8 h-8" />,
                   title: "계약서 작성", 
-                  description: "법률 검증된 계약서 템플릿으로 안전한 계약서를 생성합니다"
+                  description: "몇 분만에 계약서를 작성하고 안전하게 보관하세요."
                 },
                 {
                   step: "04",
                   icon: <Smartphone className="w-8 h-8" />,
                   title: "온라인 서명",
-                  description: "고객이 모바일에서 간편하게 서명하고 계약을 완료합니다"
+                  description: "계약서는 링크로 전달하고, 휴대폰으로 간편하게 서명하세요."
                 }
               ].map((item, index) => (
                 <div key={index} className="relative group">
@@ -242,7 +300,86 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* 기능 섹션 */}
+        {/* AI 채팅 섹션 - 다크모드 */}
+        <section className="relative z-10 py-20 bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold text-white mb-4">
+                <span className="text-blue-400">어떤 일</span>을 하시나요?
+              </h2>
+              <p className="text-xl text-gray-300">
+                친구에게 말하듯 자세히 적어주시면, 알맞는 서비스를 생성해드립니다.
+              </p>
+            </div>
+
+            {/* 채팅 입력창 - Google 스타일 다크모드 */}
+            <div className="max-w-2xl mx-auto mb-12">
+              {error && (
+                <div className="mb-4 p-4 bg-red-500/20 border border-red-500/30 rounded-xl text-red-300 text-center">
+                  {error}
+                </div>
+              )}
+              <div className="flex items-center bg-slate-800/50 border border-slate-600/50 rounded-full shadow-2xl hover:shadow-purple-500/25 transition-shadow p-2"
+                onDrop={(e) => e.preventDefault()}
+                onDragOver={(e) => e.preventDefault()}
+              >
+                <textarea
+                  value={serviceInput}
+                  onChange={(e) => setServiceInput(e.target.value)}
+                  placeholder=""
+                  className="flex-1 resize-none border-0 rounded-l-full px-6 py-4 focus:outline-none placeholder-gray-400 text-white bg-transparent"
+                  rows="1"
+                ></textarea>
+                <button 
+                  onClick={handleGenerateService}
+                  disabled={!serviceInput.trim() || isGenerating}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-8 py-4 rounded-full hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl flex items-center font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isGenerating ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      생성 중...
+                    </>
+                  ) : (
+                    '서비스 생성하기'
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* 예시 카드 3개 - 다크모드 */}
+            <div className="grid md:grid-cols-3 gap-6">
+              <div 
+                onClick={() => handleExampleClick('신축 아파트 입주청소를 해요. 화장실, 주방, 거실을 깔끔하게 청소합니다. ')}
+                className="bg-slate-800/50 border border-slate-600/50 rounded-2xl p-6 cursor-pointer hover:bg-slate-800/70 transition-colors hover:shadow-xl hover:shadow-blue-500/25"
+                draggable={false}
+              >
+                <h3 className="text-xl font-bold text-blue-400 mb-2">청소 서비스 예시</h3>
+                <p className="text-gray-300 leading-relaxed">신축 아파트 입주청소를 해요. 화장실, 주방, 거실을 깔끔하게 청소합니다. </p>
+              </div>
+              
+              <div 
+                onClick={() => handleExampleClick('중학생 수학 과외를 해요. 일주일에 2번 1:1로 개인 맞춤 지도합니다.')}
+                className="bg-slate-800/50 border border-slate-600/50 rounded-2xl p-6 cursor-pointer hover:bg-slate-800/70 transition-colors hover:shadow-xl hover:shadow-emerald-500/25"
+                draggable={false}
+              >
+                <h3 className="text-xl font-bold text-emerald-400 mb-2">과외 서비스 예시</h3>
+                <p className="text-gray-300 leading-relaxed">중학생 수학 과외를 해요. 일주일에 2번 1:1로 개인 맞춤 지도합니다. </p>
+              </div>
+              
+              <div 
+                onClick={() => handleExampleClick('작은 카페 웹사이트 디자인을 해요. 심플하고 세련되게 제작합니다. ')}
+                className="bg-slate-800/50 border border-slate-600/50 rounded-2xl p-6 cursor-pointer hover:bg-slate-800/70 transition-colors hover:shadow-xl hover:shadow-purple-500/25"
+                draggable={false}
+              >
+                <h3 className="text-xl font-bold text-purple-400 mb-2">웹사이트 디자인 예시</h3>
+                <p className="text-gray-300 leading-relaxed">작은 카페 웹사이트 디자인을 해요. 심플하고 세련되게 제작합니다. </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 기능 섹션 - 라이트모드로 변경 */}
         <section className="relative z-10 py-20 bg-white">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
@@ -258,156 +395,36 @@ export default function LandingPage() {
               {[
                 {
                   icon: <Zap className="w-12 h-12 text-yellow-500" />,
-                  title: "AI 자동 완성",
-                  description: "AI가 수천개의 계약서를 검토하여 자동 생성합니다",
-                  features: ["템플릿 자동 선택", "조항 맞춤 생성", "법률 용어 검증"]
+                  title: "AI 스마트 계약서",
+                  description: "AI가 수만개의 계약서를 학습/검토하여 최적의 계약서를 자동 생성합니다",
+                  features: ["서비스 정밀 분석", "맞춤 계약 생성", "온라인 간편 절차"]
                 },
                 {
                   icon: <Globe className="w-12 h-12 text-blue-500" />,
-                  title: "글로벌 호환",
-                  description: "한국 계약법은 물론 해외 계약서도 지원하는 국제 표준 시스템입니다",
-                  features: ["다국가 법률 지원", "다국어 번역", "현지화 템플릿"]
+                  title: "글로벌 지원 예정",
+                  description: "한국 계약서는 물론 해외 계약서도 지원하는 글로벌 업무 시스템입니다",
+                  features: ["다국가 법률 지원", "다국어 계약서 작성", "현지 법률 규정 준수"]
                 },
                 {
                   icon: <Shield className="w-12 h-12 text-green-500" />,
-                  title: "법률 검증",
-                  description: "법무법인 검토를 거친 안전한 계약서 템플릿을 제공합니다",
-                  features: ["변호사 검토 완료", "판례 기반 작성", "리스크 최소화"]
+                  title: "다양한 검증",
+                  description: "법률 검토를 거친 안전한 계약서 템플릿을 제공합니다",
+                  features: ["완성도 높은 계약서", "AI 시스템으로 위험도 판별", "고객 검증 시스템"]
                 }
               ].map((feature, index) => (
                 <div key={index} className="bg-white rounded-2xl p-8 hover:shadow-2xl transition-all duration-300 hover:scale-105 border border-gray-100">
                   <div className="mb-6">{feature.icon}</div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4">{feature.title}</h3>
+                  <h3 className="text-xl font-bold text-gray-900 mb-4">{feature.title}</h3>
                   <p className="text-gray-600 mb-6 leading-relaxed">{feature.description}</p>
                   
                   <ul className="space-y-2">
                     {feature.features.map((item, idx) => (
-                      <li key={idx} className="flex items-center text-sm text-gray-700">
+                      <li key={idx} className="flex items-center text-gray-700 leading-relaxed">
                         <CheckCircle className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
                         {item}
                       </li>
                     ))}
                   </ul>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* 가격 섹션 - 다크모드 */}
-        <section className="relative z-10 py-20 bg-gradient-to-br from-slate-900 via-indigo-900 to-purple-900">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-white mb-4">
-                <span className="text-blue-400">요금 안내</span>
-              </h2>
-              <p className="text-xl text-gray-300">
-                필요한 만큼만 사용하고, 언제든지 변경 가능합니다
-              </p>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-8">
-              {[
-                {
-                  name: "Basic",
-                  price: "무료",
-                  period: "영구",
-                  description: "개인 사용자를 위한 기본 플랜",
-                  features: [
-                    "월 3개 계약서",
-                    "기본 템플릿 5개",
-                    "이메일 지원",
-                    "기본 전자서명"
-                  ],
-                  buttonText: "무료 시작",
-                  buttonHref: "/register",
-                  popular: false,
-                  icon: <CreditCard className="w-6 h-6" />
-                },
-                {
-                  name: "Pro",
-                  price: "29,000원",
-                  period: "월",
-                  description: "소상공인과 프리랜서를 위한 프로 플랜",
-                  features: [
-                    "무제한 계약서",
-                    "모든 템플릿 이용",
-                    "AI 맞춤 생성",
-                    "우선 기술지원",
-                    "고급 전자서명",
-                    "계약서 분석"
-                  ],
-                  buttonText: "Pro 시작",
-                  buttonHref: "/register",
-                  popular: true,
-                  icon: <Star className="w-6 h-6" />
-                },
-                {
-                  name: "Enterprise",
-                  price: "문의",
-                  period: "맞춤",
-                  description: "기업을 위한 맞춤형 솔루션",
-                  features: [
-                    "Pro 플랜 모든 기능",
-                    "팀 협업 도구",
-                    "API 연동",
-                    "전담 매니저",
-                    "온사이트 교육",
-                    "맞춤 개발"
-                  ],
-                  buttonText: "문의하기",
-                  buttonHref: "/contact",
-                  popular: false,
-                  icon: <Award className="w-6 h-6" />
-                }
-              ].map((plan, index) => (
-                <div key={index} className={`relative border rounded-2xl p-8 transition-all duration-300 hover:scale-105 hover:shadow-2xl flex flex-col ${
-                  plan.popular 
-                    ? 'bg-gradient-to-br from-blue-600/20 to-purple-600/20 border-blue-400/50 shadow-xl' 
-                    : 'bg-slate-800/50 border-slate-600/50'
-                }`}>
-                  {plan.popular && (
-                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                      <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-1 rounded-full text-sm font-medium flex items-center shadow-lg">
-                        <Star className="w-4 h-4 mr-1" />
-                        인기
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div className="text-center mb-8">
-                    <div className="flex items-center justify-center mb-4 text-blue-400">
-                      {plan.icon}
-                    </div>
-                    <h3 className="text-2xl font-bold text-white mb-2">{plan.name}</h3>
-                    <div className="text-4xl font-bold text-white mb-1">
-                      {plan.price}
-                      {plan.price !== "무료" && plan.price !== "문의" && (
-                        <span className="text-lg font-normal text-gray-300">/{plan.period}</span>
-                      )}
-                    </div>
-                    <p className="text-gray-300">{plan.description}</p>
-                  </div>
-
-                  <ul className="space-y-3 mb-8 flex-grow">
-                    {plan.features.map((feature, idx) => (
-                      <li key={idx} className="flex items-center text-gray-200">
-                        <CheckCircle className="w-5 h-5 text-emerald-400 mr-3 flex-shrink-0" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-
-                  <Link
-                    href={plan.buttonHref}
-                    className={`w-full py-3 px-6 rounded-xl font-semibold transition-all duration-200 shadow-lg hover:shadow-xl text-center block ${
-                      plan.popular 
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white hover:from-blue-600 hover:to-purple-600'
-                        : 'bg-slate-700 text-white hover:bg-slate-600'
-                    }`}
-                  >
-                    {plan.buttonText}
-                  </Link>
                 </div>
               ))}
             </div>
@@ -450,35 +467,64 @@ export default function LandingPage() {
         </section>
 
         {/* 푸터 */}
-        <footer className="relative z-10 bg-gray-900 text-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-            <div className="flex flex-col md:flex-row justify-between items-center">
-              <div className="mb-4 md:mb-0">
-                <div className="relative w-32 h-8 mb-4">
-                  <Image
-                    src="/images/aorit-logo-white.png"
-                    alt="Aorit"
-                    fill
-                    className="object-contain"
-                  />
-                </div>
-                <p className="text-gray-400">
-                  AI 기반 계약서 자동화 플랫폼
-                </p>
-              </div>
-              
-              <div className="flex space-x-6 text-sm text-gray-400">
-                <a href="#" className="hover:text-white transition-colors">이용약관</a>
-                <a href="#" className="hover:text-white transition-colors">개인정보처리방침</a>
-                <a href="#" className="hover:text-white transition-colors">고객지원</a>
-              </div>
-            </div>
-            
-            <div className="mt-8 pt-8 border-t border-gray-800 text-center text-gray-400">
-              <p>&copy; 2025 Aorit. All rights reserved.</p>
-            </div>
-          </div>
-        </footer>
+<footer className="relative z-10 bg-gray-900 text-white">
+  <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="grid md:grid-cols-3 gap-8 mb-8">
+      {/* 로고 및 설명 */}
+      <div>
+        <div className="relative w-32 h-8 mb-4">
+          <Image
+            src="/images/aorit-logo-white.png"
+            alt="Aorit"
+            fill
+            className="object-contain"
+          />
+        </div>
+        <p className="text-gray-400 leading-relaxed">
+          아오릿 - AI 기반 계약서 자동화 플랫폼
+        </p>
+      </div>
+      
+      {/* 정책 및 약관 */}
+      <div>
+        <h4 className="text-lg font-semibold text-white mb-4">정책 및 약관</h4>
+        <div className="space-y-3">
+          <Link href="/terms" className="block text-gray-400 hover:text-white transition-colors">
+            이용약관
+          </Link>
+          <Link href="/privacy" className="block text-gray-400 hover:text-white transition-colors">
+            개인정보처리방침
+          </Link>
+          <Link href="/contact" className="block text-gray-400 hover:text-white transition-colors">
+            고객지원
+          </Link>
+        </div>
+      </div>
+      
+      {/* 고객센터 */}
+      <div>
+        <h4 className="text-lg font-semibold text-white mb-4">고객센터</h4>
+        <div className="space-y-2 text-sm text-gray-400">
+          <p className="text-2xl font-bold text-white"></p>
+          <p>평일 09:00 - 18:00</p>
+          <p>주말 및 공휴일 휴무</p>
+          <p className="mt-3">
+            <a href="mailto:cs@aorit.com" className="text-blue-400 hover:text-blue-300 transition-colors">
+              cs@aorit.com
+            </a>
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    {/* 저작권 정보 */}
+    <div className="pt-8 border-t border-gray-800 text-center">
+      <p className="text-gray-400 text-sm">
+        &copy; 2025 펫돌(주) All rights reserved.
+      </p>
+    </div>
+  </div>
+</footer>
 
         {/* 영상 모달 */}
         {showVideoModal && (
@@ -497,6 +543,104 @@ export default function LandingPage() {
                 allow="autoplay; encrypted-media"
                 allowFullScreen
               ></iframe>
+            </div>
+          </div>
+        )}
+
+        {/* 서비스 생성 결과 모달 - 4개 카드 */}
+        {showServiceModal && generatedServices && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-75 p-4">
+            <div className="relative w-full max-w-6xl bg-white rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
+              <button
+                onClick={() => setShowServiceModal(false)}
+                className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 text-2xl font-bold z-10"
+              >
+                ✕
+              </button>
+              
+              <div className="p-8">
+                <div className="text-center mb-8">
+                  <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle className="w-8 h-8 text-green-600" />
+                  </div>
+                  <h3 className="text-3xl font-bold text-gray-900 mb-2">AI가 맞춤 서비스를 생성했습니다!</h3>
+                  <p className="text-gray-600">3가지 다양한 서비스 옵션을 확인하고 선택하세요</p>
+                </div>
+
+                {/* 3개 서비스 카드 그리드 - 콤팩트 세로 스타일 */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                  {generatedServices.map((service, index) => (
+                    <div key={service.id || index} className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg transition-shadow">
+                      {/* 서비스 헤더 */}
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1">
+                          <h4 className="text-xl font-bold text-gray-900 mb-2">{service.title}</h4>
+                          <div className="flex items-center gap-4">
+                            <div className="text-2xl font-bold text-blue-600">
+                              {(service.price || service.estimatedPrice || 100000).toLocaleString()}원
+                            </div>
+                            <span className="text-sm text-gray-500">{service.duration || '협의'}</span>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full">
+                            {getCategoryName(service.categoryId || service.category)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 서비스 설명 */}
+                      <div className="mb-4">
+                        <p className="text-gray-700 text-sm leading-relaxed">{service.description}</p>
+                      </div>
+
+                      {/* 포함 내용 */}
+                      <div className="mb-6">
+                        <h5 className="text-sm font-semibold text-gray-900 mb-2">포함 내용</h5>
+                        <ul className="space-y-1">
+                          {(service.features || ['전문 서비스', '맞춤 상담', '품질 보장']).slice(0, 3).map((feature, idx) => (
+                            <li key={idx} className="flex items-center text-sm text-gray-600">
+                              <CheckCircle className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
+                              {feature}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      {/* 서비스 추가 버튼 */}
+                      <button
+                        onClick={() => handleAddService(service)}
+                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+                      >
+                        이 서비스 추가하기
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {/* 하단 액션 */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-200">
+                  <button
+                    onClick={() => setShowServiceModal(false)}
+                    className="flex-1 bg-gray-100 text-gray-700 px-6 py-3 rounded-xl hover:bg-gray-200 transition-all duration-200 font-medium"
+                  >
+                    다시 생성하기
+                  </button>
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('pendingServices', JSON.stringify(generatedServices));
+                      router.push('/login?from=service-generation');
+                    }}
+                    className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-6 py-3 rounded-xl hover:from-emerald-700 hover:to-teal-700 transition-all duration-200 shadow-lg hover:shadow-xl font-medium"
+                  >
+                    모든 서비스 추가하기
+                  </button>
+                </div>
+
+                <p className="text-xs text-gray-500 text-center mt-4">
+                  * 서비스 추가 후 언제든지 수정하실 수 있습니다
+                </p>
+              </div>
             </div>
           </div>
         )}

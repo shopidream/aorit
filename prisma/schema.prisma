@@ -1,4 +1,4 @@
-// schema.prisma - SaaS DB 스키마 (NextAuth 포함)
+// schema.prisma - SaaS DB 스키마 (NextAuth 포함) - 사용량 테이블 제거
 generator client {
   provider = "prisma-client-js"
 }
@@ -79,7 +79,7 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-// ============ 기존 모델들 (User ID 타입 수정) ============
+// ============ 기존 모델들 ============
 
 // 프로필 & 소개
 model Profile {

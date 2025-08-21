@@ -15,7 +15,8 @@ import {
 import { 
   FileText, 
   CheckCircle, 
-  Shield 
+  Shield,
+  BarChart3
 } from 'lucide-react';
 
 export default function Sidebar({ isOpen, onClose, isMobile }) {
@@ -35,7 +36,8 @@ export default function Sidebar({ isOpen, onClose, isMobile }) {
   // 관리자 메뉴
   const adminMenuItems = [
     { href: '/admin/templates', label: '템플릿 관리', icon: FileText },
-    { href: '/admin/clauses', label: '조항 검토', icon: CheckCircle }
+    { href: '/admin/clauses', label: '조항 검토', icon: CheckCircle },
+    { href: '/admin/usage-stats', label: '사용량 통계', icon: BarChart3 }
   ];
 
   const handleNavClick = () => {

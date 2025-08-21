@@ -1,10 +1,11 @@
-// components/layout/Layout.js - 고정 헤더/사이드바 완전 반응형 레이아웃
+// components/layout/Layout.js - 고정 헤더/사이드바 완전 반응형 레이아웃 + 푸터
 import React, { useState, useEffect } from 'react';
 import Header from './Header';
 import Sidebar from './Sidebar';
+import Footer from './Footer';
 import { useAuthContext } from '../../contexts/AuthContext';
 
-export default function Layout({ children, showSidebar = true }) {
+export default function Layout({ children, showSidebar = true, showFooter = true }) {
   const { isAuthenticated } = useAuthContext();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -29,7 +30,7 @@ export default function Layout({ children, showSidebar = true }) {
   const closeSidebar = () => setSidebarOpen(false);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* 고정 헤더 */}
       <div className="fixed top-0 left-0 right-0 z-50">
         <Header 
@@ -39,7 +40,7 @@ export default function Layout({ children, showSidebar = true }) {
       </div>
       
       {/* 메인 레이아웃 - 헤더 높이만큼 상단 여백 */}
-      <div className="flex pt-16"> {/* pt-16 = 64px 헤더 높이 */}
+      <div className="flex pt-16 flex-1"> {/* pt-16 = 64px 헤더 높이, flex-1로 남은 공간 차지 */}
         {/* 고정 사이드바 */}
         {isAuthenticated && showSidebar && (
           <div className="fixed top-16 left-0 bottom-0 z-40">
@@ -61,11 +62,12 @@ export default function Layout({ children, showSidebar = true }) {
         
         {/* 메인 컨텐츠 - 사이드바 너비만큼 좌측 여백 */}
         <main className={`
-          flex-1 min-h-[calc(100vh-4rem)]
+          flex-1 min-h-[calc(100vh-4rem)] flex flex-col
           ${isAuthenticated && showSidebar && !isMobile ? 'lg:ml-64' : ''}
         `}>
-          {/* 컨테이너 - 좌측 정렬로 변경하고 적절한 여백 */}
+          {/* 컨텐츠 영역 */}
           <div className={`
+            flex-1
             ${isAuthenticated && showSidebar && !isMobile 
               ? 'pl-6 pr-4 sm:pl-8 sm:pr-6 lg:pl-10 lg:pr-8' 
               : 'px-4 sm:px-6 lg:px-8'
@@ -74,10 +76,17 @@ export default function Layout({ children, showSidebar = true }) {
             max-w-none
           `}>
             {/* 최대 너비 제한 (너무 넓어지지 않도록) */}
-            <div className="max-w-6xl">
+            <div className="max-w-6xl mx-auto">
               {children}
             </div>
           </div>
+          
+          {/* 푸터 */}
+          {showFooter && (
+            <div className="bg-red-500 text-white p-4 text-center">
+              푸터 테스트 - 이 텍스트가 보이면 푸터 위치는 정상
+            </div>
+          )}
         </main>
       </div>
     </div>

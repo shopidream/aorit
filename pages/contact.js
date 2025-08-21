@@ -243,12 +243,12 @@ export default function ContactPage() {
                           value={formData.company}
                           onChange={handleChange}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="회사명 (선택사항)"
+                          placeholder="회사명 (선택) "
                         />
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">
-                          연락처
+                          연락처 *
                         </label>
                         <input
                           type="tel"
@@ -256,7 +256,7 @@ export default function ContactPage() {
                           value={formData.phone}
                           onChange={handleChange}
                           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                          placeholder="010-1234-5678 (선택사항)"
+                          placeholder="010-1234-5678 "
                         />
                       </div>
                     </div>
