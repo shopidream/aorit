@@ -1,17 +1,16 @@
-// schema.prisma - SaaS DB 스키마 (NextAuth 포함) - 사용량 테이블 제거
+// schema.prisma - SaaS DB 스키마 (NextAuth 포함) - username 필드 제거
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
 // ============ NextAuth + 핵심 사용자 모델 ============
 model User {
   id            String    @id @default(cuid())
-  username      String?   @unique
   email         String    @unique
   password      String?   // nullable (소셜 로그인용)
   name          String?

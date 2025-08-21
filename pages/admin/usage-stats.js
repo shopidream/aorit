@@ -1,4 +1,4 @@
-// pages/admin/usage-stats.js - 관리자 사용량 통계
+// pages/admin/usage-stats.js - 관리자 사용량 통계 (username 제거)
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
 import Layout from '../../components/layout/Layout';
@@ -257,7 +257,7 @@ export default function AdminUsageStatsPage() {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
                           <div className="text-sm font-medium text-gray-900">
-                            {user.name || user.username}
+                            {user.name || user.email}
                           </div>
                           <div className="text-sm text-gray-500">
                             {user.email}

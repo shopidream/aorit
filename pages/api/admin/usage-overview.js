@@ -1,4 +1,4 @@
-// pages/api/admin/usage-overview.js - 사용량 통계 API
+// pages/api/admin/usage-overview.js - 사용량 통계 API (username 제거)
 import { verifyToken } from '../../../lib/auth';
 import { prisma } from '../../../lib/prisma';
 
@@ -69,7 +69,6 @@ export default async function handler(req, res) {
     const allUsers = await prisma.user.findMany({
       select: {
         id: true,
-        username: true,
         name: true,
         email: true,
         createdAt: true,
@@ -98,7 +97,6 @@ export default async function handler(req, res) {
     const heavyUsersFormatted = heavyUsers
       .map(user => ({
         id: user.id,
-        username: user.username,
         name: user.name,
         email: user.email,
         createdAt: user.createdAt,

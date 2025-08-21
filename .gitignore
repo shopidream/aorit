@@ -44,3 +44,7 @@ prisma/migrations/
 # Logs
 logs
 *.log
+
+# PM2 config
+ecosystem.config.js
+
