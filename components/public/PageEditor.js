@@ -52,7 +52,7 @@ export default function PageEditor({ onSave }) {
         // 기본 slug 설정 (사용자명 기반)
         setPageData(prev => ({
           ...prev,
-          slug: user?.username || user?.name?.toLowerCase().replace(/\s+/g, '-') || ''
+          slug: user?.email?.split('@')[0] || user?.name?.toLowerCase().replace(/\s+/g, '-') || ''
         }));
       }
     } catch (error) {

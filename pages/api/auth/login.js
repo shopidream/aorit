@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   }
 
   const { email, username, password, isNextAuth } = req.body;
-  const loginEmail = email || username; // email 또는 username 둘 다 지원
+  const loginEmail = email; // email만 지원
 
   // NextAuth 세션을 JWT로 변환하는 경우
   if (isNextAuth && loginEmail) {
@@ -42,7 +42,7 @@ export default async function handler(req, res) {
   }
 
   // 기존 email/password 로그인
-  if (!loginEmail || !password) {
+  if (!email || !password) {
     return res.status(400).json({ error: '이메일과 비밀번호를 입력해주세요' });
   }
 
