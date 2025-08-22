@@ -106,13 +106,13 @@ model Profile {
   stampImage     String?
   
   // 기존 필드
-  bio         String?
+  bio         String?  @db.Text
   website     String?
   youtube     String?
-  snsLinks    String?
+  snsLinks    String?  @db.Text
   phone       String?
-  address     String?
-  profileCard String?
+  address     String?  @db.Text
+  profileCard String?  @db.Text
   
   // 계좌 정보 추가
   bankName      String?
@@ -146,15 +146,15 @@ model Service {
   userId          String
   categoryId      String
   title           String
-  description     String
+  description     String   @db.Text
   price           Float?
   planLevel       String?
   duration        String?
-  images          String?
-  features        String?
-  tags           String?
-  deliverables    String?
-  packages        String?
+  images          String?  @db.Text
+  features        String?  @db.Text
+  tags           String?   @db.Text
+  deliverables    String?  @db.Text
+  packages        String?  @db.Text
   order          Int      @default(0)
   isPlan      Boolean @default(false)
   isActive        Boolean  @default(true)
@@ -178,11 +178,11 @@ model Client {
   company   String?
   position  String?
   serviceCategory String?
-  serviceDescription String?
+  serviceDescription String? @db.Text
   websiteUrl String?
-  memo      String?
+  memo      String?  @db.Text
   businessNumber String?
-  companyAddress String?
+  companyAddress String? @db.Text
   companyPhone   String?
   
   // Soft Delete 필드 추가
@@ -209,13 +209,13 @@ model Quote {
   title       String?
   status      String   @default("draft")
   amount      Float?
-  items       String?
+  items       String?  @db.Text
   validUntil  DateTime?
-  notes       String?
+  notes       String?  @db.Text
   
   // AI 견적 지원 필드
   type        String   @default("manual")
-  metadata    String?
+  metadata    String?  @db.Text
   
   // 타임스탬프
   createdAt   DateTime @default(now())
@@ -241,8 +241,8 @@ model Contract {
   type      String   @default("manual")
   status    String   @default("pending")
   amount    Float?
-  content   String?
-  metadata  String?
+  content   String?  @db.Text
+  metadata  String?  @db.Text
   
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -281,7 +281,7 @@ model Clause {
   contractId Int
   title      String?
   type       String
-  content    String
+  content    String  @db.Text
   essential  Boolean @default(false)
   order      Int     @default(0)
   
@@ -295,7 +295,7 @@ model Signature {
   signerType    String
   signerName    String
   signerEmail   String
-  signatureData String?
+  signatureData String?  @db.Text
   signatureType String?
   signedAt      DateTime @default(now())
   
@@ -318,13 +318,13 @@ model ContractChecklist {
   id         Int      @id @default(autoincrement())
   contractId Int
   title      String
-  description String?
+  description String?  @db.Text
   category   String
   order      Int      @default(0)
   completed  Boolean  @default(false)
   completedAt DateTime?
   requiresSignature Boolean @default(false)
-  signature  String?
+  signature  String?  @db.Text
   signedAt   DateTime?
   createdAt  DateTime @default(now())
   
@@ -337,7 +337,7 @@ model Review {
   userId     String
   contractId Int
   rating     Int
-  comment    String?
+  comment    String?  @db.Text
   createdAt  DateTime @default(now())
   
   user     User     @relation("UserReviews", fields: [userId], references: [id], onDelete: Cascade)
@@ -349,7 +349,7 @@ model Portfolio {
   id          Int      @id @default(autoincrement())
   userId      String
   title       String
-  description String?
+  description String?  @db.Text
   link        String?
   imageUrl    String?
   order       Int      @default(0)
@@ -376,13 +376,13 @@ model SourceContract {
   id            Int      @id @default(autoincrement())
   filename      String   @unique
   title         String?
-  fullText      String
-  metadata      String?
+  fullText      String   @db.Text
+  metadata      String?  @db.Text
   clauseCount   Int      @default(0)
   uploadedBy    String
   status        String   @default("uploaded")
   processedAt   DateTime?
-  analysisResult String?
+  analysisResult String? @db.Text
   createdAt     DateTime @default(now())
   
   uploader User @relation("UploadedBy", fields: [uploadedBy], references: [id])
@@ -393,14 +393,14 @@ model SourceContract {
 model ClauseCandidate {
   id               Int      @id @default(autoincrement())
   title            String
-  content          String
+  content          String   @db.Text
   contractCategory String
   clauseCategory   String?
   sourceContract   String
   sourceId         Int?
   confidence       Float    @default(0.5)
-  tags             String?
-  variables        String?
+  tags             String?  @db.Text
+  variables        String?  @db.Text
   similarity       Float?
   needsReview      Boolean  @default(true)
   reviewedAt       DateTime?
@@ -414,17 +414,17 @@ model ClauseCandidate {
 model ContractTemplate {
   id           Int      @id @default(autoincrement())
   name         String
-  description  String?
-  content      String
+  description  String?  @db.Text
+  content      String   @db.Text
   category     String
-  variables    String?
-  clauses      String?
+  variables    String?  @db.Text
+  clauses      String?  @db.Text
   status       String   @default("active")
   userId       String
   
   // 기존 필드들
   type         String?
-  tags         String?
+  tags         String?  @db.Text
   industry     String?
   complexity   String?
   confidence   Float    @default(1.0)
@@ -454,7 +454,7 @@ model TemplateMatchLog {
   serviceType   String?
   amount        Float?
   complexity    String?
-  matchedTemplates String?
+  matchedTemplates String? @db.Text
   selectedTemplate Int?
   satisfaction  Int?
   createdAt     DateTime @default(now())
@@ -468,7 +468,7 @@ model ClauseCategory {
   name        String   @unique
   level       Int      @default(1)
   parentId    Int?
-  description String?
+  description String?  @db.Text
   isActive    Boolean  @default(true)
   isDefault   Boolean  @default(false)
   usageCount  Int      @default(0)
@@ -487,13 +487,13 @@ model ClauseCategory {
 model ProposedCategory {
   id             Int      @id @default(autoincrement())
   name           String
-  description    String?
+  description    String?  @db.Text
   suggestedBy    String   @default("gpt")
   sourceTemplate String?
   parentId       Int?
   confidence     Float    @default(0.7)
   status         String   @default("pending")
-  adminNotes     String?
+  adminNotes     String?  @db.Text
   createdAt      DateTime @default(now())
   reviewedAt     DateTime?
   
@@ -509,12 +509,12 @@ model SharedService {
   userId        String
   token         String   @unique
   title         String
-  description   String?
+  description   String?  @db.Text
   thumbnailImage String?
   
   // OG 태그 설정
   ogTitle       String?
-  ogDescription String?
+  ogDescription String?  @db.Text
   ogImage       String?
   
   // 접근 제어
@@ -546,7 +546,7 @@ model SharedServiceView {
   id             Int      @id @default(autoincrement())
   sharedServiceId Int
   ipAddress      String
-  userAgent      String?
+  userAgent      String?  @db.Text
   referer        String?
   viewedAt       DateTime @default(now())
   

@@ -1,302 +1,432 @@
-// scripts/bulkUploadTemplates.js - 대량 템플릿 자동 업로드
+// scripts/bulkUploadTemplates.js - AI 분류 기반 대량 템플릿 자동 업로드
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 
-// 매핑 데이터
-const TEMPLATE_MAPPING = {
-  'OEM 기본계약서': '제조/공급',
-  'PFV 자산관리위탁계약서': '용역/프로젝트',
-  'TV홈쇼핑거래표준계약서': '거래/구매',
-  '개발용역계약서': '용역/프로젝트',
-  '개인정보 수집활용 동의서': '비밀/보안',
-  '개인정보처리위탁 계약서': '비밀/보안',
-  '건물철거용역 표준계약서': '용역/프로젝트',
-  '건설공사표준하도급계약서': '제조/공급',
-  '건축물 공사감리계약서': '용역/프로젝트',
-  '건축설계업종 표준하도급계약서': '용역/프로젝트',
-  '검수확인서 샘플(설치장비 검사사항 및 검사방법)': '기타/일반',
-  '검수확인서(상세)': '기타/일반',
-  '검수확인서(일반양식)': '기타/일반',
-  '게임(도급) 표준계약서': '용역/프로젝트',
-  '고문위촉계약서': '용역/프로젝트',
-  '공사대금 지불각서': '거래/구매',
-  '공사완료확인서': '기타/일반',
-  '공연예술 기술지원 표준근로계약서': '근로/고용',
-  '공연예술 표준대관계약서': '용역/프로젝트',
-  '공연예술기술지원 표준용역계약서': '용역/프로젝트',
-  '공연예술창작계약서': '용역/프로젝트',
-  '공연예술출연계약서': '근로/고용',
-  '광고물제작계약서국문': '용역/프로젝트',
-  '광고용건물임대계약서약식': '거래/구매',
-  '그림 등 매매계약서': '거래/구매',
-  '그림 사진 저작물 판매위탁계약서': '거래/구매',
-  '금전소비대차 계약서': '투자/자금',
-  '금형제작업종 표준하도급계약서': '제조/공급',
-  '기계업종 제조 표준하도급계약서': '제조/공급',
-  '납품계약서': '거래/구매',
-  '노무제공 공통 표준계약서(고용노동부)': '근로/고용',
-  '대리점계약서국문': '파트너십/제휴',
-  '동업계약서(각자대표)': '파트너십/제휴',
-  '동업계약서(혼자대표)': '파트너십/제휴',
-  '디자인 서비스 계약서국문': '용역/프로젝트',
-  '디자인업종(제품 시각 포장) 표준하도급계약서': '용역/프로젝트',
-  '디지털콘텐츠(음악)공급 표준계약서': '거래/구매',
-  '매장임대차표준계약서(아울렛 복합쇼핑몰)': '거래/구매',
-  '모델(미술사진작품)계약서': '용역/프로젝트',
-  '물품구매계약서': '거래/구매',
-  '미술사진작품 전시(온라인전시부속합의포함)계약서': '용역/프로젝트',
-  '민간건설공사 표준도급계약서': '제조/공급',
-  '방염처리 표준도급계약서': '제조/공급',
-  '법률자문계약서(간단)': '용역/프로젝트',
-  '법률자문계약서(상세)': '용역/프로젝트',
-  '보안서약서(프로젝트참여자용)': '비밀/보안',
-  '부동산 매매계약서': '거래/구매',
-  '부동산근저당권설정계약서': '거래/구매',
-  '부동산임대차계약서': '거래/구매',
-  '불용물품(차량) 매각계약서': '거래/구매',
-  '비밀유지계약서': '비밀/보안',
-  '상표권 양도 표준계약서': '거래/구매',
-  '생활용품업종 표준대리점계약서': '파트너십/제휴',
-  '선박임대차계약서(건설업체용)': '거래/구매',
-  '성실시공(공공 공사) 이행각서': '기타/일반',
-  '세무대리계약서국문': '용역/프로젝트',
-  '소모품 구매조건부 장비(의료장비) 임대계약서': '거래/구매',
-  '소방시설공사업종 표준하도급 기본계약서': '제조/공급',
-  '소방시설설계 표준도급계약서': '용역/프로젝트',
-  '소프트웨어 라이선스 계약서': '거래/구매',
-  '소프트웨어사업표준하도급계약서국문': '용역/프로젝트',
-  '수출물품 임가공계약서': '제조/공급',
-  '승강기설치공사업종 표준하도급계약서': '제조/공급',
-  '시설공사 계약서': '용역/프로젝트',
-  '식음료업종대리점표준계약서': '파트너십/제휴',
-  '약속이행각서(부동산매매대금)': '기타/일반',
-  '업무제휴 협약서': '파트너십/제휴',
-  '업무협약 양해각서': '파트너십/제휴',
-  '영수증 양식차용금전부변제': '기타/일반',
-  '영수증양식차용금일부변제': '기타/일반',
-  '영화산업 근로표준계약서': '근로/고용',
-  '오디오북 배타적발행권 설정계약서': '거래/구매',
-  '오디오북 유통 계약서': '거래/구매',
-  '오디오북 저작인접권 이용허락 계약서': '거래/구매',
-  '오디오북 제작 계약서': '용역/프로젝트',
-  '온라인 광고 계약서': '용역/프로젝트',
-  '온라인쇼핑몰표준거래계약서(위수탁거래)': '거래/구매',
-  '외국인표준근로계약서': '근로/고용',
-  '웹사이트 제작계약서': '용역/프로젝트',
-  '웹툰 연재계약서': '용역/프로젝트',
-  '위임계약서(간단서식)': '용역/프로젝트',
-  '위임장(간단서식)': '용역/프로젝트',
-  '위탁가공계약서국문': '제조/공급',
-  '유지보수계약서': '용역/프로젝트',
-  '의류업종대리점(재판매형)표준계약서': '파트너십/제휴',
-  '이러닝콘텐츠 개발용역 표준계약서': '용역/프로젝트',
-  '이사용역계약서': '용역/프로젝트',
-  '이행각서(채무변제)': '기타/일반',
-  '인테리어공사 표준계약서': '용역/프로젝트',
-  '저작물 이용계약서': '거래/구매',
-  '저작재산권 독점적 이용허락 계약서': '거래/구매',
-  '저작재산권 비독점적 이용허락 계약서': '거래/구매',
-  '저작재산권 양도계약서': '거래/구매',
-  '저작재산권 일부에 대한 양도계약서': '거래/구매',
-  '전기공사표준도급계약서': '제조/공급',
-  '전자출판 배타적발행권 및 출판권 설정계약서': '거래/구매',
-  '전자출판 배타적발행권 설정계약서': '거래/구매',
-  '정보통신공사표준도급계약서': '제조/공급',
-  '정수기 임대차(렌탈) 약관 계약서': '거래/구매',
-  '제약업종대리점표준계약서': '파트너십/제휴',
-  '주식 양수도 계약서(개인간)': '거래/구매',
-  '집단급식소위탁운영계약서': '용역/프로젝트',
-  '총판대리점계약서': '파트너십/제휴',
-  '출판권 설정(도서출간)계약서': '거래/구매',
-  '커미션(알선중개수수료)계약서': '거래/구매',
-  '커미션(판매수수료) 지급계약서': '거래/구매',
-  '컨설팅계약서': '용역/프로젝트',
-  '투자계약서(보통주 방식)': '투자/자금',
-  '특허 및 기술도입계약서국문': '거래/구매',
-  '특허권 양도계약서': '거래/구매',
-  '표준 대출모집업무 위탁계약서(금융사 대출모집법인간)': '용역/프로젝트',
-  '표준 대출모집업무 위탁계약서(금융사 대출상담사간)': '용역/프로젝트',
-  '표준 대출모집업무 위탁계약서(대출모집법인 대출상담사간)': '용역/프로젝트',
-  '표준광고출연계약서국문': '근로/고용',
-  '표준근로계약서(건설일용직)': '근로/고용',
-  '표준근로계약서(기간정함없음)': '근로/고용',
-  '표준근로계약서(기간정함있음)': '근로/고용',
-  '표준근로계약서(단시간근로자)': '근로/고용',
-  '표준근로계약서(미성년자)': '근로/고용',
-  '표준물품매매계약서': '거래/구매',
-  '프랜차이즈(자동차정비가맹점) 표준계약서': '파트너십/제휴',
-  '프랜차이즈(커피가맹점)표준계약서': '파트너십/제휴',
-  '프리랜서 용역계약서': '용역/프로젝트',
-  '화가(사진)작가 전속계약서': '용역/프로젝트',
-  '화물자동차 운송사업 표준위수탁계약서': '거래/구매',
-  '화장품대리점표준계약서': '파트너십/제휴'
+// 언어 정보
+const LANGUAGES = {
+  kr: { name: '한국어', flag: '🇰🇷' },
+  en: { name: 'English', flag: '🇺🇸' },
+  es: { name: 'Español', flag: '🇪🇸' },
+  de: { name: 'Deutsch', flag: '🇩🇪' }
 };
 
 // 설정
 const CONFIG = {
   baseUrl: 'http://localhost:3100',
-  contractsDir: './contract_txt',
+  templatesBaseDir: './templates',
   delayBetweenUploads: 3000, // 3초 딜레이 (AI 분석 시간 고려)
-  maxRetries: 3
+  maxRetries: 3,
+  skipExisting: true // 기존 업로드된 템플릿 제외
 };
 
 /**
  * 메인 실행 함수
  */
 async function main() {
-  console.log('🚀 대량 템플릿 업로드 시작...');
-  console.log(`📁 계약서 폴더: ${CONFIG.contractsDir}`);
+  console.log('🚀 AI 기반 다국어 템플릿 대량 업로드 시작...');
+  console.log(`📁 템플릿 기본 폴더: ${CONFIG.templatesBaseDir}`);
   console.log(`🎯 서버 주소: ${CONFIG.baseUrl}`);
   
-  // 토큰 확인
-  const token = getTokenFromArgs();
-  if (!token) {
-    console.error('❌ 토큰이 필요합니다.');
-    console.log('사용법: node scripts/bulkUploadTemplates.js --token=YOUR_TOKEN');
-    console.log('');
-    console.log('토큰 확인 방법:');
-    console.log('1. 브라우저에서 http://localhost:3100/login 접속');
-    console.log('2. 관리자로 로그인');
-    console.log('3. 개발자도구(F12) > Application > Local Storage > token 값 복사');
-    process.exit(1);
-  }
-  
-  // 계약서 폴더 확인
-  if (!fs.existsSync(CONFIG.contractsDir)) {
-    console.error(`❌ 계약서 폴더를 찾을 수 없습니다: ${CONFIG.contractsDir}`);
-    process.exit(1);
-  }
-  
-  // txt 파일 목록 가져오기
-  const txtFiles = fs.readdirSync(CONFIG.contractsDir)
-    .filter(file => file.endsWith('.txt'))
-    .sort();
-  
-  if (txtFiles.length === 0) {
-    console.error('❌ txt 파일이 없습니다.');
-    process.exit(1);
-  }
-  
-  console.log(`📄 발견된 계약서 파일: ${txtFiles.length}개`);
-  
-  // 매핑되지 않은 파일 확인
-  const unmappedFiles = txtFiles.filter(file => {
-    const nameWithoutExt = file.replace('.txt', '');
-    return !TEMPLATE_MAPPING[nameWithoutExt];
-  });
-  
-  if (unmappedFiles.length > 0) {
-    console.warn('⚠️ 매핑되지 않은 파일들:');
-    unmappedFiles.forEach(file => console.warn(`   - ${file}`));
-    console.log('');
-  }
-  
-  // 매핑된 파일만 처리
-  const mappedFiles = txtFiles.filter(file => {
-    const nameWithoutExt = file.replace('.txt', '');
-    return TEMPLATE_MAPPING[nameWithoutExt];
-  });
-  
-  console.log(`✅ 업로드 대상 파일: ${mappedFiles.length}개`);
-  console.log(`⏱️ 예상 소요 시간: ${Math.ceil(mappedFiles.length * CONFIG.delayBetweenUploads / 1000 / 60)}분`);
-  console.log('');
-  
-  // 진행률 추적
-  let successCount = 0;
-  let failCount = 0;
-  let totalClauses = 0;
-  
-  // 순차 업로드
-  for (let i = 0; i < mappedFiles.length; i++) {
-    const file = mappedFiles[i];
-    const nameWithoutExt = file.replace('.txt', '');
-    const category = TEMPLATE_MAPPING[nameWithoutExt];
-    const filePath = path.join(CONFIG.contractsDir, file);
+  try {
+    // 명령행 인수 파싱
+    const args = parseArguments();
     
-    console.log(`\n📋 [${i + 1}/${mappedFiles.length}] ${nameWithoutExt}`);
-    console.log(`   카테고리: ${category}`);
+    if (!args.token) {
+      showUsage();
+      process.exit(1);
+    }
+
+    // API 키 확인
+    if (!process.env.OPENAI_API_KEY) {
+      console.error('❌ OPENAI_API_KEY 환경변수가 설정되지 않았습니다.');
+      process.exit(1);
+    }
     
-    try {
-      // 파일 읽기
-      const content = fs.readFileSync(filePath, 'utf8');
-      const fileSize = fs.statSync(filePath).size;
-      
-      console.log(`   파일 크기: ${formatBytes(fileSize)}`);
-      console.log(`   내용 길이: ${content.length.toLocaleString()}자`);
-      
-      // 업로드 실행
-      const result = await uploadTemplate({
-        name: nameWithoutExt,
-        category: category,
-        content: content,
-        token: token
+    // 언어 선택
+    const selectedLang = args.language || await selectLanguage();
+    const contractsDir = path.join(CONFIG.templatesBaseDir, `contract_templates_${selectedLang}`);
+    
+    // 템플릿 폴더 확인
+    if (!fs.existsSync(contractsDir)) {
+      console.error(`❌ 템플릿 폴더를 찾을 수 없습니다: ${contractsDir}`);
+      console.log(`\n📝 폴더 생성 방법:`);
+      console.log(`mkdir -p ${contractsDir}`);
+      process.exit(1);
+    }
+    
+    const langInfo = LANGUAGES[selectedLang];
+    
+    console.log(`\n🌍 선택된 언어: ${langInfo.flag} ${langInfo.name}`);
+    console.log(`📂 템플릿 폴더: ${contractsDir}`);
+    
+    // 기존 업로드된 템플릿 목록 가져오기
+    let existingTemplates = [];
+    if (CONFIG.skipExisting) {
+      console.log(`\n🔍 기존 업로드된 템플릿 확인 중...`);
+      existingTemplates = await getExistingTemplateNames(args.token);
+      console.log(`📋 기존 템플릿: ${existingTemplates.length}개`);
+    }
+    
+    // txt 파일 목록 가져오기
+    const allFiles = fs.readdirSync(contractsDir)
+      .filter(file => file.endsWith('.txt'))
+      .sort();
+    
+    console.log(`📄 발견된 템플릿 파일: ${allFiles.length}개`);
+    
+    // 중복 제외 필터링
+    let filteredFiles = allFiles;
+    if (CONFIG.skipExisting && existingTemplates.length > 0) {
+      filteredFiles = allFiles.filter(file => {
+        const nameWithoutExt = file.replace('.txt', '');
+        const isExisting = existingTemplates.some(existing => 
+          existing === nameWithoutExt || existing.startsWith(nameWithoutExt)
+        );
+        return !isExisting;
       });
       
-      if (result.success) {
-        successCount++;
-        totalClauses += result.extractedClauses || 0;
+      console.log(`🆕 신규 파일: ${filteredFiles.length}개`);
+      console.log(`⏭️ 제외된 파일: ${allFiles.length - filteredFiles.length}개 (이미 업로드됨)`);
+    }
+    
+    if (filteredFiles.length === 0) {
+      console.log(`\n✅ 모든 파일이 이미 업로드되었습니다!`);
+      console.log(`💡 새 템플릿 파일을 ${contractsDir}에 추가하세요.`);
+      return;
+    }
+    
+    console.log(`\n✅ 업로드 대상 파일: ${filteredFiles.length}개`);
+    console.log(`💰 예상 AI 분류 비용: 약 $${calculateAICost(filteredFiles.length).toFixed(3)}`);
+    console.log(`⏱️ 예상 소요시간: ${Math.ceil(filteredFiles.length * CONFIG.delayBetweenUploads / 1000 / 60)}분`);
+    console.log('');
+    
+    // 확인 요청 (배치 모드가 아닌 경우)
+    if (!args.batch) {
+      const readline = require('readline');
+      const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+      });
+      
+      const answer = await new Promise(resolve => {
+        rl.question('계속 진행하시겠습니까? (y/N): ', resolve);
+      });
+      
+      rl.close();
+      
+      if (answer.toLowerCase() !== 'y' && answer.toLowerCase() !== 'yes') {
+        console.log('업로드가 취소되었습니다.');
+        process.exit(0);
+      }
+    }
+    
+    // 진행률 추적
+    let successCount = 0;
+    let failCount = 0;
+    let totalClauses = 0;
+    let totalAICost = 0;
+    
+    // 순차 업로드
+    for (let i = 0; i < filteredFiles.length; i++) {
+      const file = filteredFiles[i];
+      const nameWithoutExt = file.replace('.txt', '');
+      const filePath = path.join(contractsDir, file);
+      
+      console.log(`\n📋 [${i + 1}/${filteredFiles.length}] ${nameWithoutExt}`);
+      console.log(`   🌍 언어: ${langInfo.flag} ${langInfo.name}`);
+      
+      try {
+        // 파일 읽기
+        const content = fs.readFileSync(filePath, 'utf8');
+        const fileSize = fs.statSync(filePath).size;
         
-        console.log(`   ✅ 업로드 성공`);
-        console.log(`   🔍 추출된 조항: ${result.extractedClauses || 0}개`);
+        console.log(`   📏 파일 크기: ${formatBytes(fileSize)}`);
+        console.log(`   📝 내용 길이: ${content.length.toLocaleString()}자`);
         
-        if (result.analysis) {
-          console.log(`   📊 분석 완료: ${result.analysis.clauseCount}개 조항 분석됨`);
+        // AI로 카테고리 분류
+        console.log(`   🤖 AI 카테고리 분류 중...`);
+        const categoryResult = await classifyTemplateWithAI(nameWithoutExt, selectedLang);
+        
+        console.log(`   📂 AI 분류 결과: ${categoryResult.category} (신뢰도: ${Math.round(categoryResult.confidence * 100)}%)`);
+        console.log(`   💡 분류 이유: ${categoryResult.reason}`);
+        console.log(`   💰 분류 비용: $${categoryResult.cost.toFixed(6)}`);
+        
+        totalAICost += categoryResult.cost;
+        
+        // 신뢰도가 낮으면 경고
+        if (categoryResult.confidence < 0.8) {
+          console.log(`   ⚠️ 낮은 신뢰도 - 검토 권장`);
         }
-      } else {
+        
+        // 업로드 실행
+        const result = await uploadTemplate({
+          name: `${nameWithoutExt} (${langInfo.name})`,
+          category: categoryResult.category,
+          content: content,
+          language: selectedLang,
+          classification: categoryResult,
+          token: args.token
+        });
+        
+        if (result.success) {
+          successCount++;
+          totalClauses += result.extractedClauses || 0;
+          
+          console.log(`   ✅ 업로드 성공`);
+          console.log(`   🔍 추출된 조항: ${result.extractedClauses || 0}개`);
+          
+          if (result.analysis) {
+            console.log(`   📊 조항 분석 완료: ${result.analysis.clauseCount}개 조항 분석됨`);
+          }
+        } else {
+          failCount++;
+          console.log(`   ❌ 업로드 실패: ${result.error}`);
+        }
+        
+      } catch (error) {
         failCount++;
-        console.log(`   ❌ 업로드 실패: ${result.error}`);
+        console.log(`   ❌ 파일 처리 오류: ${error.message}`);
       }
       
-    } catch (error) {
-      failCount++;
-      console.log(`   ❌ 파일 처리 오류: ${error.message}`);
+      // 진행률 표시
+      const progress = Math.round(((i + 1) / filteredFiles.length) * 100);
+      console.log(`   📈 진행률: ${progress}% (성공: ${successCount}, 실패: ${failCount})`);
+      
+      // 다음 파일 전 대기 (마지막 파일 제외)
+      if (i < filteredFiles.length - 1) {
+        console.log(`   ⏳ ${CONFIG.delayBetweenUploads / 1000}초 대기 중... (AI 분석 시간)`);
+        await sleep(CONFIG.delayBetweenUploads);
+      }
     }
     
-    // 진행률 표시
-    const progress = Math.round(((i + 1) / mappedFiles.length) * 100);
-    console.log(`   📈 진행률: ${progress}% (성공: ${successCount}, 실패: ${failCount})`);
+    // 최종 결과
+    console.log('\n🎉 대량 업로드 완료!');
+    console.log('==========================================');
+    console.log(`🌍 언어: ${langInfo.flag} ${langInfo.name}`);
+    console.log(`📊 총 파일: ${filteredFiles.length}개`);
+    console.log(`✅ 성공: ${successCount}개`);
+    console.log(`❌ 실패: ${failCount}개`);
+    console.log(`🏷️ 총 추출된 조항: ${totalClauses.toLocaleString()}개`);
+    console.log(`💰 총 AI 분류 비용: $${totalAICost.toFixed(6)}`);
+    console.log(`📈 성공률: ${Math.round((successCount / filteredFiles.length) * 100)}%`);
     
-    // 다음 파일 전 대기 (마지막 파일 제외)
-    if (i < mappedFiles.length - 1) {
-      console.log(`   ⏳ ${CONFIG.delayBetweenUploads / 1000}초 대기 중... (AI 분석 시간)`);
-      await sleep(CONFIG.delayBetweenUploads);
+    if (totalClauses > 0) {
+      console.log('');
+      console.log('🔍 조항 검토 안내:');
+      console.log('1. 브라우저에서 http://localhost:3100/admin/clauses 접속');
+      console.log('2. 검토 대기 조항들을 확인하고 승인/거부 처리');
+      console.log(`3. 예상 검토 대기 조항: 약 ${Math.round(totalClauses * 0.3)}개 (신뢰도 85% 미만)`);
+    }
+    
+    if (failCount > 0) {
+      console.log('\n⚠️ 실패한 파일들을 다시 확인해보세요.');
+    }
+    
+  } catch (error) {
+    console.error('❌ 실행 오류:', error);
+    throw error;
+  }
+}
+
+/**
+ * AI로 템플릿 카테고리 분류
+ */
+async function classifyTemplateWithAI(fileName, language) {
+  const prompt = createCategoryPrompt(fileName, language);
+  
+  try {
+    console.log(`     🔄 GPT-4o-mini로 분류 중...`);
+    
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ 
+          role: 'user', 
+          content: prompt 
+        }],
+        max_tokens: 200,
+        temperature: 0.1
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API 오류: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices[0].message.content;
+    
+    // 토큰 사용량 및 비용 계산
+    const inputTokens = data.usage.prompt_tokens;
+    const outputTokens = data.usage.completion_tokens;
+    const cost = (inputTokens * 0.25 / 1000000) + (outputTokens * 2.00 / 1000000);
+    
+    // JSON 파싱
+    let parsed;
+    try {
+      const cleanContent = content.replace(/```json|```/g, '').trim();
+      parsed = JSON.parse(cleanContent);
+    } catch (parseError) {
+      throw new Error(`JSON 파싱 실패: ${parseError.message}`);
+    }
+    
+    return {
+      category: parsed.category,
+      confidence: parsed.confidence || 0.5,
+      reason: parsed.reason || '',
+      inputTokens: inputTokens,
+      outputTokens: outputTokens,
+      cost: cost
+    };
+    
+  } catch (error) {
+    console.error(`     ❌ AI 분류 오류: ${error.message}`);
+    
+    // 폴백: 키워드 기반 분류
+    return fallbackCategorization(fileName);
+  }
+}
+
+/**
+ * 언어별 카테고리 분류 프롬프트 생성
+ */
+function createCategoryPrompt(fileName, language) {
+  if (language === 'kr') {
+    return `다음 한국어 계약서 파일명을 분석하여 가장 적절한 카테고리를 선택하세요.
+
+사용 가능한 카테고리 (정확히 이 중 하나만 선택)와 정의:
+- 용역/프로젝트: 특정 업무, 서비스, 프로젝트 수행을 위한 계약 (예: 개발용역, 공연예술용역)
+- 거래/구매: 제품, 물품, 재료, 콘텐츠 등의 매매 및 구매 관련 계약 (예: 물품구매계약서, 오디오북 유통 계약서)
+- 제조/공급: 제품, 부품, 장비 등의 제작, 제조, 공급과 관련된 계약 (예: 건설공사 도급계약, 금형제작 계약)
+- 근로/고용: 고용, 근로, 인력 제공 관련 계약 (예: 표준근로계약서, 공연예술출연계약서)
+- 파트너십/제휴: 공동사업, 협력, 대리점, 프랜차이즈 등의 제휴 관련 계약
+- 투자/자금: 자금조달, 투자, 금융 거래 관련 계약
+- 비밀/보안: 비밀유지, 개인정보, 보안 관련 계약
+- 기타/일반: 위의 어느 범주에도 속하지 않는 일반 계약서 (예: 각종 확인서, 각서)
+
+계약서 파일명: ${fileName}
+
+다음 JSON 형식으로만 응답하세요:
+{
+  "category": "선택된 카테고리",
+  "confidence": 0.95,
+  "reason": "분류 이유 (한 문장)"
+}`;
+  } else if (language === 'en') {
+    return `Analyze the following English contract filename and select the most appropriate category.
+
+Available categories (select exactly one):
+- Service/Project: Contracts for specific services, work, or project execution
+- Trade/Purchase: Contracts for buying/selling products, materials, or content
+- Manufacturing/Supply: Contracts for production, manufacturing, or supply
+- Employment/Labor: Employment, labor, or workforce contracts
+- Partnership/Alliance: Joint ventures, partnerships, franchises, or alliances
+- Investment/Finance: Investment, funding, or financial contracts
+- Confidentiality/Security: Confidentiality, privacy, or security contracts
+- General/Others: General contracts not fitting above categories
+
+Contract filename: ${fileName}
+
+Respond only in this JSON format:
+{
+  "category": "selected category",
+  "confidence": 0.95,
+  "reason": "classification reason (one sentence)"
+}`;
+  }
+  
+  // 기타 언어는 영어로 기본 처리
+  return createCategoryPrompt(fileName, 'en');
+}
+
+/**
+ * 폴백 카테고리 분류 (키워드 기반)
+ */
+function fallbackCategorization(fileName) {
+  const keywords = {
+    '용역/프로젝트': ['용역', '개발', '제작', '컨설팅', '디자인', '설계', '감리'],
+    '거래/구매': ['매매', '구매', '임대', '렌탈', '공급', '유통'],
+    '제조/공급': ['제조', '생산', '하도급', '납품', '건설', '공사'],
+    '근로/고용': ['근로', '고용', '출연', '광고', '위촉'],
+    '파트너십/제휴': ['대리점', '프랜차이즈', '동업', '제휴', '협약'],
+    '투자/자금': ['투자', '대출', '자금', '대차'],
+    '비밀/보안': ['비밀', '보안', '개인정보'],
+    '기타/일반': ['각서', '확인서', '영수증']
+  };
+
+  for (const [category, words] of Object.entries(keywords)) {
+    if (words.some(word => fileName.includes(word))) {
+      return {
+        category,
+        confidence: 0.7,
+        reason: `파일명 키워드 매칭: ${words.find(w => fileName.includes(w))}`,
+        inputTokens: 0,
+        outputTokens: 0,
+        cost: 0
+      };
     }
   }
-  
-  // 최종 결과
-  console.log('\n🎉 대량 업로드 완료!');
-  console.log('==========================================');
-  console.log(`📊 총 파일: ${mappedFiles.length}개`);
-  console.log(`✅ 성공: ${successCount}개`);
-  console.log(`❌ 실패: ${failCount}개`);
-  console.log(`🏷️ 총 추출된 조항: ${totalClauses.toLocaleString()}개`);
-  console.log(`📈 성공률: ${Math.round((successCount / mappedFiles.length) * 100)}%`);
-  
-  if (totalClauses > 0) {
-    console.log('');
-    console.log('🔍 조항 검토 안내:');
-    console.log('1. 브라우저에서 http://localhost:3100/admin/clauses 접속');
-    console.log('2. 검토 대기 조항들을 확인하고 승인/거부 처리');
-    console.log(`3. 예상 검토 대기 조항: 약 ${Math.round(totalClauses * 0.3)}개 (신뢰도 85% 미만)`);
-  }
-  
-  if (failCount > 0) {
-    console.log('\n⚠️ 실패한 파일들을 다시 확인해보세요.');
+
+  return {
+    category: '기타/일반',
+    confidence: 0.5,
+    reason: '기본 카테고리',
+    inputTokens: 0,
+    outputTokens: 0,
+    cost: 0
+  };
+}
+
+/**
+ * 기존 업로드된 템플릿 이름 가져오기
+ */
+async function getExistingTemplateNames(token) {
+  try {
+    const response = await axios.get(`${CONFIG.baseUrl}/api/admin/templates`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
+      params: {
+        limit: 1000 // 충분히 큰 수로 모든 템플릿 조회
+      }
+    });
+    
+    return response.data.templates.map(t => {
+      // "템플릿명 (한국어)" 형태에서 템플릿명만 추출
+      const match = t.name.match(/^(.+?)\s*\(/);
+      return match ? match[1].trim() : t.name;
+    });
+  } catch (error) {
+    console.warn(`⚠️ 기존 템플릿 목록 조회 실패: ${error.message}`);
+    return [];
   }
 }
 
 /**
  * 개별 템플릿 업로드
  */
-async function uploadTemplate({ name, category, content, token }) {
+async function uploadTemplate({ name, category, content, language, classification, token }) {
   for (let attempt = 1; attempt <= CONFIG.maxRetries; attempt++) {
     try {
       const response = await axios.post(`${CONFIG.baseUrl}/api/admin/templates`, {
         name: name,
         category: category,
         content: content,
-        description: `${name} 템플릿 (자동 업로드)`
+        description: `${name} 템플릿 (AI 자동 분류)`,
+        language: language,
+        tags: [language, 'ai-classified', `confidence-${Math.round(classification.confidence * 100)}`],
+        classification: {
+          method: 'ai_automatic',
+          confidence: classification.confidence,
+          reason: classification.reason,
+          aiCost: classification.cost
+        }
       }, {
         headers: {
           'Content-Type': 'application/json',
@@ -315,7 +445,7 @@ async function uploadTemplate({ name, category, content, token }) {
       
     } catch (error) {
       const errorMsg = error.response?.data?.error || error.message;
-      console.log(`   ⚠️ 시도 ${attempt}/${CONFIG.maxRetries} 실패: ${errorMsg}`);
+      console.log(`     ⚠️ 업로드 시도 ${attempt}/${CONFIG.maxRetries} 실패: ${errorMsg}`);
       
       if (attempt === CONFIG.maxRetries) {
         return {
@@ -331,17 +461,92 @@ async function uploadTemplate({ name, category, content, token }) {
 }
 
 /**
- * 명령행 인수에서 토큰 추출
+ * 명령행 인수 파싱
  */
-function getTokenFromArgs() {
+function parseArguments() {
   const args = process.argv.slice(2);
-  const tokenArg = args.find(arg => arg.startsWith('--token='));
+  const result = {};
   
-  if (tokenArg) {
-    return tokenArg.split('=')[1];
+  args.forEach(arg => {
+    if (arg.startsWith('--token=')) {
+      result.token = arg.split('=')[1];
+    } else if (arg.startsWith('--lang=') || arg.startsWith('--language=')) {
+      result.language = arg.split('=')[1];
+    } else if (arg === '--batch' || arg === '-b') {
+      result.batch = true;
+    } else if (arg === '--help' || arg === '-h') {
+      result.help = true;
+    }
+  });
+  
+  return result;
+}
+
+/**
+ * 언어 선택 (대화형)
+ */
+async function selectLanguage() {
+  const readline = require('readline');
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+  
+  console.log('\n🌍 사용 가능한 언어:');
+  Object.entries(LANGUAGES).forEach(([code, info]) => {
+    console.log(`   ${code}: ${info.flag} ${info.name}`);
+  });
+  
+  const answer = await new Promise(resolve => {
+    rl.question('\n언어 코드를 입력하세요 (kr/en/es/de): ', resolve);
+  });
+  
+  rl.close();
+  
+  if (!LANGUAGES[answer]) {
+    console.error('❌ 유효하지 않은 언어 코드입니다.');
+    process.exit(1);
   }
   
-  return null;
+  return answer;
+}
+
+/**
+ * 사용법 출력
+ */
+function showUsage() {
+  console.log('사용법:');
+  console.log('  node scripts/bulkUploadTemplates.js --token=YOUR_TOKEN [옵션]');
+  console.log('');
+  console.log('필수 옵션:');
+  console.log('  --token=TOKEN        인증 토큰');
+  console.log('');
+  console.log('선택 옵션:');
+  console.log('  --lang=LANG         언어 코드 (kr/en/es/de, 기본값: 대화형 선택)');
+  console.log('  --batch, -b         배치 모드 (확인 없이 진행)');
+  console.log('  --help, -h          도움말 출력');
+  console.log('');
+  console.log('예시:');
+  console.log('  node scripts/bulkUploadTemplates.js --token=abc123 --lang=kr');
+  console.log('  node scripts/bulkUploadTemplates.js --token=abc123 --batch');
+  console.log('');
+  console.log('토큰 확인 방법:');
+  console.log('1. 브라우저에서 http://localhost:3100/login 접속');
+  console.log('2. 관리자로 로그인');
+  console.log('3. 개발자도구(F12) > Application > Local Storage > token 값 복사');
+}
+
+/**
+ * AI 분류 비용 계산
+ */
+function calculateAICost(fileCount) {
+  const avgInputTokens = 300;  // 파일명 + 프롬프트
+  const avgOutputTokens = 50;  // 간단한 JSON 응답
+  
+  const inputCost = (fileCount * avgInputTokens * 0.25) / 1000000;
+  const outputCost = (fileCount * avgOutputTokens * 2.00) / 1000000;
+  
+  return inputCost + outputCost;
 }
 
 /**
@@ -381,6 +586,13 @@ process.on('uncaughtException', (error) => {
 
 // 스크립트 실행
 if (require.main === module) {
+  const args = parseArguments();
+  
+  if (args.help) {
+    showUsage();
+    process.exit(0);
+  }
+  
   main().catch(error => {
     console.error('❌ 스크립트 실행 오류:', error);
     process.exit(1);
