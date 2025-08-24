@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '../ui/DesignSystem';
 import { useAuthContext } from '../../contexts/AuthContext';
+import AIUsageIndicator from '../ui/AIUsageIndicator';
 
 // 햄버거 메뉴 아이콘 컴포넌트
 const MenuIcon = ({ size = 24, className = '' }) => (
@@ -73,6 +74,11 @@ export default function Header({ onMenuClick, showMenuButton = false }) {
           <div className="flex items-center gap-3">
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
+                {/* AI 사용량 표시 */}
+                <div className="hidden lg:block">
+                  <AIUsageIndicator />
+                </div>
+                
                 {/* 데스크톱 사용자 정보 */}
                 <div className="hidden md:flex items-center gap-3">
                   <span className="text-sm text-gray-700">

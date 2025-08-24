@@ -1,6 +1,7 @@
 // pages/api/ai/auto-contract.js - GPT+Claude 협업 및 템플릿 기반 계약서 생성 시스템
 
 import { verifyToken } from '../../../lib/auth';
+import { checkAIUsageLimit, incrementAIUsage } from '../../../lib/aiUsageLimit';
 import { 
   CONTRACT_LENGTH_OPTIONS,
   getRecommendedLength,
@@ -48,6 +49,17 @@ export default async function handler(req, res) {
 
     if (!user) {
       return res.status(404).json({ error: '사용자를 찾을 수 없습니다' });
+    }
+    
+    // AI 사용량 제한 체크
+    try {
+      const usageInfo = await checkAIUsageLimit(userId);
+      console.log(`AI 계약서 생성 - 사용 가능: ${usageInfo.remaining}/${usageInfo.limit}`);
+    } catch (error) {
+      return res.status(429).json({ 
+        error: error.message,
+        code: 'AI_USAGE_LIMIT_EXCEEDED'
+      });
     }
 
     const { 
@@ -220,6 +232,9 @@ export default async function handler(req, res) {
         generationType: generation_type
       }
     };
+
+    // AI 사용량 증가
+    await incrementAIUsage(userId);
 
     if (options.saveToDatabase !== false) {
       const savedContract = await saveContractToDatabase(user.id, finalContract, contractData);

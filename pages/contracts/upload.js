@@ -82,6 +82,25 @@ export default function ContractUploadPage() {
     setCurrentStep(1);
 
     try {
+      // AI 사용량 제한 체크
+      const token = localStorage.getItem('token');
+      const usageResponse = await fetch('/api/ai/check-usage', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+  
+      if (!usageResponse.ok) {
+        const usageError = await usageResponse.json();
+        if (usageResponse.status === 429) {
+          setError(usageError.error);
+          setCurrentStep(0);
+          setIsProcessing(false);
+          return;
+        }
+      }
+  
       // 1단계: 계약서 정규화
       const normalizeResponse = await fetch('/api/contracts/normalize', {
         method: 'POST',

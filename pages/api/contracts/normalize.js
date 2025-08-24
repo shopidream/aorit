@@ -3,6 +3,7 @@
 import { getCurrentUser } from '../../../lib/auth';
 import { normalizeContract } from '../../../lib/contractNormalizer';
 import { analyzeContractClauses } from '../../../lib/contractClauseAnalyzer';
+import { checkAIUsageLimit, incrementAIUsage } from '../../../lib/aiUsageLimit';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -16,6 +17,16 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: '인증이 필요합니다' });
     }
 
+    // AI 사용량 제한 체크
+    try {
+      const usageInfo = await checkAIUsageLimit(user.id);
+      console.log(`AI 계약서 검토 - 사용 가능: ${usageInfo.remaining}/${usageInfo.limit}`);
+    } catch (error) {
+      return res.status(429).json({ 
+        error: error.message,
+        code: 'AI_USAGE_LIMIT_EXCEEDED'
+      });
+    }
     const { content, options = {} } = req.body;
 
     if (!content || typeof content !== 'string') {
@@ -92,6 +103,9 @@ export default async function handler(req, res) {
         };
       }
     }
+
+    // AI 사용량 증가
+    await incrementAIUsage(user.id);
 
     return res.status(200).json({
       success: true,

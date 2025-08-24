@@ -2,6 +2,11 @@
 
 import { analyzeBusinessDescription, generateServices } from '../../../lib/serviceGenerator';
 import { calculateServicePrice } from '../../../lib/priceCalculator';
+import { verifyToken } from '../../../lib/auth';
+import { checkAIUsageLimit, incrementAIUsage } from '../../../lib/aiUsageLimit';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -9,6 +14,31 @@ export default async function handler(req, res) {
   }
 
   try {
+    // 인증 확인
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(401).json({ error: '인증 토큰이 필요합니다' });
+    }
+
+    let userId;
+    try {
+      const decoded = verifyToken(token);
+      userId = decoded.userId;
+    } catch (error) {
+      return res.status(401).json({ error: '유효하지 않은 토큰입니다' });
+    }
+
+    // AI 사용량 제한 체크
+    try {
+      const usageInfo = await checkAIUsageLimit(userId);
+      console.log(`AI 서비스 생성 - 사용 가능: ${usageInfo.remaining}/${usageInfo.limit}`);
+    } catch (error) {
+      return res.status(429).json({ 
+        error: error.message,
+        code: 'AI_USAGE_LIMIT_EXCEEDED'
+      });
+    }
+
     const { businessDescription, step = 'full' } = req.body;
 
     if (!businessDescription?.trim()) {
@@ -65,6 +95,9 @@ export default async function handler(req, res) {
       isActive: true,
       isPlan: false
     }));
+
+    // AI 사용량 증가
+    await incrementAIUsage(userId);
 
     return res.status(200).json({
       success: true,

@@ -42,6 +42,13 @@ model User {
   // NextAuth 관계
   accounts      Account[]
   sessions      Session[]
+  
+  // AI 사용량 추적
+  aiUsageCount    Int      @default(0)
+  aiUsageMonth    String?  // "2025-01"
+  aiPlan          String   @default("beta") // beta, premium, enterprise
+  aiLimit         Int      @default(20) // 월 사용 제한
+    
 }
 
 model Account {
