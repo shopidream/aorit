@@ -12,7 +12,8 @@ import {
   UsersIcon, 
   DocumentIcon, 
   CheckIcon,
-  PlusIcon
+  PlusIcon,
+  FloatingActionBar
 } from '../components/ui/DesignSystem';
 import { 
   ArrowLeft,
@@ -259,41 +260,7 @@ export default function ClientsPage() {
           </Card>
         )}
 
-        {/* 선택된 고객 상태 - ServiceCatalog 패턴과 동일한 위치 */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="font-semibold text-gray-900 mb-1">
-                선택된 고객: {selectedClients.length}명
-              </div>
-              {selectedClients.length > 0 && (
-                <div className="text-sm text-gray-600">
-                  {selectedClients[0].name}
-                  {selectedClients[0].company && ` (${selectedClients[0].company})`}
-                </div>
-              )}
-            </div>
-            <Button 
-              onClick={handleCreateQuote}
-              disabled={selectedClients.length === 0}
-              variant={isFromServices ? "primary" : "outline"}
-              icon={isFromServices ? CheckIcon : DocumentIcon}
-            >
-              {isFromServices ? '이 고객으로 견적 작성' : '견적서 작성'}
-            </Button>
-          </div>
-          
-          {selectedClients.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-2">
-              {selectedClients.map(client => (
-                <Badge key={client.id} variant="primary" size="sm">
-                  {client.name}
-                  {client.company && ` (${client.company})`}
-                </Badge>
-              ))}
-            </div>
-          )}
-        </Card>
+
 
         {/* 탭 네비게이션 */}
         <Tabs
@@ -470,6 +437,24 @@ export default function ClientsPage() {
             </Card>
           )}
         </div>
+        {/* 플로팅 액션바 */}
+        {selectedClients.length > 0 && (
+          <FloatingActionBar
+            actions={[
+              { 
+                label: '상세', 
+                onClick: () => handleClientDetail(selectedClients[0]), 
+                show: selectedClients.length === 1 
+              },
+              { 
+                label: isFromServices ? '견적 작성' : '견적서 작성', 
+                onClick: handleCreateQuote, 
+                variant: 'primary' 
+              }
+            ]}
+            onClear={() => setSelectedClients([])}
+          />
+        )}
       </div>
   );
 }

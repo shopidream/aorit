@@ -1,13 +1,16 @@
-// pages/shared/[token].js - ServiceDetail 컴포넌트 재사용
+// pages/shared/[token].js - 서비스 관리페이지와 통일화된 디자인
 import React, { useState } from 'react';
 import Head from 'next/head';
-import { Card, Button } from '../../components/ui/DesignSystem';
+import { Card, Button, Badge, FloatingActionBar } from '../../components/ui/DesignSystem';
+import ServiceCard from '../../components/catalog/ServiceCard';
 import ServiceDetail from '../../components/services/ServiceDetail';
+import { normalizeService } from '../../lib/dataTypes';
 import { 
   Mail, 
   Phone, 
   Eye, 
-  CheckCircle
+  CheckCircle,
+  ArrowLeft
 } from 'lucide-react';
 
 export default function SharedServicesPage({ 
@@ -35,16 +38,26 @@ export default function SharedServicesPage({
   const contactPhone = profile?.contactPhone || profile?.companyPhone;
 
   const handleServiceSelect = (service) => {
-    setSelectedServices(prev => {
-      const isSelected = prev.find(s => s.id === service.id);
-      return isSelected 
-        ? prev.filter(s => s.id !== service.id) 
-        : [...prev, service];
-    });
+    const normalizedService = normalizeService(service);
+    
+    if (normalizedService.isPlan) {
+      // 플랜 서비스는 같은 카테고리에서 하나만 선택 가능
+      setSelectedServices(prev => {
+        const withoutSameCategory = prev.filter(s => !s.isPlan || s.categoryId !== normalizedService.categoryId);
+        const isAlreadySelected = prev.find(s => s.id === normalizedService.id);
+        return isAlreadySelected ? withoutSameCategory : [...withoutSameCategory, normalizedService];
+      });
+    } else {
+      // 일반 서비스는 다중 선택 가능
+      setSelectedServices(prev => {
+        const isSelected = prev.find(s => s.id === normalizedService.id);
+        return isSelected ? prev.filter(s => s.id !== normalizedService.id) : [...prev, normalizedService];
+      });
+    }
   };
 
   const handleServiceDetail = (service) => {
-    setViewingService(service);
+    setViewingService(normalizeService(service));
   };
 
   const handleQuoteRequest = () => {
@@ -59,7 +72,30 @@ export default function SharedServicesPage({
     window.location.href = `mailto:${contactEmail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   };
 
+  const handleClearSelection = () => {
+    setSelectedServices([]);
+  };
+
   const totalPrice = selectedServices.reduce((sum, s) => sum + (s.price || 0), 0);
+
+  // 플랜 서비스와 일반 서비스 분리
+  const planGroups = services.reduce((groups, service) => {
+    if (service.isPlan) {
+      const groupName = service.category?.name || '미분류 플랜';
+      if (!groups[groupName]) groups[groupName] = [];
+      groups[groupName].push(service);
+    }
+    return groups;
+  }, {});
+
+  const categorizedServices = services.reduce((groups, service) => {
+    if (!service.isPlan) {
+      const categoryName = service.category?.name || '기타 서비스';
+      if (!groups[categoryName]) groups[categoryName] = [];
+      groups[categoryName].push(service);
+    }
+    return groups;
+  }, {});
 
   // 서비스 상세보기 - ServiceDetail 컴포넌트 재사용
   if (viewingService) {
@@ -75,7 +111,7 @@ export default function SharedServicesPage({
               service={viewingService}
               user={user}
               profile={profile}
-              userRole="customer" // 고객용이므로 편집/삭제 버튼 숨김
+              userRole="customer"
               onBack={() => setViewingService(null)}
             />
             
@@ -87,16 +123,26 @@ export default function SharedServicesPage({
               <p className="text-gray-600 mb-6">
                 선택하신 서비스는 견적 요청 목록에 추가됩니다.
               </p>
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={() => {
-                  setSelectedServices([viewingService]);
-                  setViewingService(null);
-                }}
-              >
-                이 서비스 선택하기
-              </Button>
+              <div className="flex gap-3 justify-center">
+                <Button
+                  variant="outline"
+                  onClick={() => setViewingService(null)}
+                  icon={ArrowLeft}
+                >
+                  목록으로 돌아가기
+                </Button>
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onClick={() => {
+                    handleServiceSelect(viewingService);
+                    setViewingService(null);
+                  }}
+                  icon={CheckCircle}
+                >
+                  이 서비스 선택하기
+                </Button>
+              </div>
             </Card>
           </div>
         </div>
@@ -121,20 +167,26 @@ export default function SharedServicesPage({
       </Head>
 
       <div className="min-h-screen bg-gray-50">
-        <div className="max-w-6xl mx-auto p-6 space-y-8">
+        <div className="max-w-6xl mx-auto p-6 space-y-8 pb-24">
           
           {/* 헤더 */}
           <div className="text-center py-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-6">
+            <h1 className="text-4xl font-bold text-gray-900 mb-6">
               {profile?.companyName || user?.name || '서비스'}
             </h1>
             
+            {shareData?.description && (
+              <p className="text-xl text-gray-600 leading-relaxed mb-6 max-w-2xl mx-auto">
+                {shareData.description}
+              </p>
+            )}
+            
             {(contactEmail || contactPhone) && (
-              <div className="flex justify-center gap-4">
+              <div className="flex justify-center gap-6">
                 {contactEmail && (
                   <a 
                     href={`mailto:${contactEmail}`}
-                    className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800"
+                    className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
                   >
                     <Mail size={18} />
                     {contactEmail}
@@ -143,7 +195,7 @@ export default function SharedServicesPage({
                 {contactPhone && (
                   <a 
                     href={`tel:${contactPhone}`}
-                    className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800"
+                    className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 font-medium"
                   >
                     <Phone size={18} />
                     {contactPhone}
@@ -153,139 +205,110 @@ export default function SharedServicesPage({
             )}
           </div>
 
-          {/* 선택된 서비스 상태 */}
-          <Card className="p-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-gray-700">
-                {selectedServices.length > 0 
-                  ? `선택: ${selectedServices.length}개 (${totalPrice.toLocaleString()}원)`
-                  : '서비스를 선택하세요'
-                }
-              </span>
-              <Button 
-                size="sm"
-                onClick={handleQuoteRequest} 
-                disabled={selectedServices.length === 0 || !contactEmail}
-                variant="primary"
-              >
-                견적 요청하기
-              </Button>
-            </div>
-          </Card>
 
-          {/* 서비스 그리드 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {services.map((service) => {
-              let images = [];
-              let features = [];
+
+          {/* 플랜 서비스들 */}
+          {Object.keys(planGroups).length > 0 && (
+            <div className="space-y-8">
+              <div className="border-b border-gray-200 pb-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-3">플랜 서비스</h2>
+                <p className="text-gray-600">각 카테고리에서 하나씩 선택하실 수 있습니다</p>
+              </div>
               
-              try {
-                images = service.images && service.images !== '' 
-                  ? (typeof service.images === 'string' ? JSON.parse(service.images) : service.images)
-                  : [];
-              } catch (e) {
-                images = [];
-              }
-              
-              try {
-                features = service.features && service.features !== ''
-                  ? (typeof service.features === 'string' ? JSON.parse(service.features) : service.features)
-                  : [];
-              } catch (e) {
-                features = [];
-              }
-
-              const isSelected = selectedServices.find(s => s.id === service.id);
-              
-              return (
-                <Card 
-                  key={service.id} 
-                  className={`overflow-hidden hover:shadow-lg transition-all cursor-pointer relative ${
-                    isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''
-                  }`}
-                  onClick={() => handleServiceSelect(service)}
-                >
-                  
-                  {/* 선택 표시 */}
-                  {isSelected && (
-                    <div className="absolute top-3 right-3 z-10">
-                      <div className="p-1 bg-blue-600 rounded-full">
-                        <CheckCircle size={16} className="text-white" />
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* 서비스 이미지 */}
-                  {images.length > 0 && (
-                    <div className="aspect-video bg-gray-100 overflow-hidden">
-                      <img 
-                        src={images[0]} 
-                        alt={service.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.target.style.display = 'none';
-                        }}
-                      />
-                    </div>
-                  )}
-                  
-                  <div className="p-6">
-                    {/* 제목과 가격 */}
-                    <div className="mb-4">
-                      <h3 className="text-lg font-bold text-gray-900 mb-2">{service.title}</h3>
-                      <div className="text-2xl font-bold text-blue-600">
-                        {service.price ? `${service.price.toLocaleString()}원` : '견적 문의'}
-                      </div>
-                      {service.duration && (
-                        <div className="text-sm text-gray-500 mt-1">
-                          예상 기간: {service.duration}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* 설명 */}
-                    <p className="text-gray-700 text-sm leading-relaxed mb-4 line-clamp-3">
-                      {service.description}
-                    </p>
-
-                    {/* 주요 기능 */}
-                    {features.length > 0 && (
-                      <div className="mb-6">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-2">주요 기능</h4>
-                        <ul className="space-y-1">
-                          {features.slice(0, 3).map((feature, index) => (
-                            <li key={index} className="text-sm text-gray-600 flex items-start">
-                              <div className="w-1.5 h-1.5 bg-blue-500 rounded-full mr-2 mt-2 flex-shrink-0"></div>
-                              <span className="line-clamp-1">{feature}</span>
-                            </li>
-                          ))}
-                          {features.length > 3 && (
-                            <li className="text-sm text-gray-500 pl-3.5">
-                              +{features.length - 3}개 기능 더
-                            </li>
-                          )}
-                        </ul>
-                      </div>
-                    )}
-
-                    {/* 상세보기 버튼 */}
-                    <Button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleServiceDetail(service);
-                      }}
-                      variant="outline"
-                      size="sm"
-                      icon={Eye}
-                      className="w-full"
-                    >
-                      상세보기
-                    </Button>
+              {Object.entries(planGroups).map(([groupName, groupServices]) => (
+                <div key={groupName} className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-semibold text-gray-800">{groupName}</h3>
+                    <Badge variant="warning" size="sm">
+                      플랜 ({groupServices.length}개 중 1개 선택)
+                    </Badge>
                   </div>
-                </Card>
-              );
-            })}
-          </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {groupServices.map(service => {
+                      const normalizedService = normalizeService(service);
+                      const isSelected = selectedServices.some(s => s.id === normalizedService.id);
+                      const hasOtherSelected = selectedServices.some(s => 
+                        s.isPlan && s.categoryId === normalizedService.categoryId && s.id !== normalizedService.id
+                      );
+                      
+                      return (
+                        <div key={service.id} className={`relative transition-all duration-200 ${hasOtherSelected ? 'opacity-50' : ''}`}>
+                          <ServiceCard
+                            service={normalizedService}
+                            userRole="customer"
+                            onServiceDetail={handleServiceDetail}
+                            isSelected={isSelected}
+                            onSelect={handleServiceSelect}
+                            showCheckbox={true}
+                          />
+                          {hasOtherSelected && (
+                            <div className="absolute inset-0 bg-gray-500 bg-opacity-20 rounded-2xl flex items-center justify-center pointer-events-none">
+                              <Badge variant="secondary" size="sm">
+                                다른 플랜이 선택됨
+                              </Badge>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* 일반 서비스들 */}
+          {Object.keys(categorizedServices).map((categoryName) => {
+            const categoryServices = categorizedServices[categoryName];
+            if (categoryServices.length === 0) return null;
+
+            return (
+              <div key={categoryName} className="space-y-6">
+                <div className="border-b border-gray-200 pb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-2xl font-bold text-gray-900">{categoryName}</h2>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge variant="secondary" size="sm">일반 서비스</Badge>
+                    <span className="text-sm text-gray-500">{categoryServices.length}개 서비스</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  {categoryServices.map((service) => {
+                    const normalizedService = normalizeService(service);
+                    const isSelected = selectedServices.find(s => s.id === normalizedService.id);
+                    
+                    return (
+                      <ServiceCard
+                        key={normalizedService.id}
+                        service={normalizedService}
+                        userRole="customer"
+                        onServiceDetail={handleServiceDetail}
+                        isSelected={!!isSelected}
+                        onSelect={handleServiceSelect}
+                        showCheckbox={true}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* 빈 상태 */}
+          {services.length === 0 && (
+            <Card className="text-center py-16">
+              <div className="mx-auto mb-6 p-4 bg-gray-100 rounded-full w-fit">
+                <Eye size={48} className="text-gray-400" />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">등록된 서비스가 없습니다</h3>
+              <p className="text-gray-600 max-w-sm mx-auto leading-relaxed">
+                현재 공유할 수 있는 서비스가 없습니다.
+              </p>
+            </Card>
+          )}
 
           {/* 푸터 */}
           <div className="text-center py-8 text-gray-500 border-t">
@@ -294,6 +317,17 @@ export default function SharedServicesPage({
             </p>
           </div>
         </div>
+
+        {/* 플로팅 액션바 - 서비스 관리페이지와 동일한 스타일 */}
+        {selectedServices.length > 0 && (
+          <FloatingActionBar
+            selectedCount={selectedServices.length}
+            onQuote={handleQuoteRequest}
+            onClear={handleClearSelection}
+            isFromClients={false}
+            quoteButtonText="견적 요청하기"
+          />
+        )}
       </div>
     </>
   );

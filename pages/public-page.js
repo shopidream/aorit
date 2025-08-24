@@ -92,17 +92,17 @@ export default function PublicPageManagement() {
     setPageData(savedPageData);
   };
 
-  if (loading) {
+  if (loading || typeof window === 'undefined') {
     return (
-        <div className="flex items-center justify-center min-h-64">
-          <div className="text-center space-y-4">
-            <LoadingSpinner size="lg" />
-            <p className="text-gray-600">로딩 중...</p>
-          </div>
+      <div className="flex items-center justify-center min-h-64">
+        <div className="text-center space-y-4">
+          <LoadingSpinner size="lg" />
+          <p className="text-gray-600">로딩 중...</p>
         </div>
+      </div>
     );
   }
-
+  
   if (!isAuthenticated) {
     return null;
   }

@@ -1,19 +1,17 @@
-// components/catalog/ServiceCard.js - 통일된 디자인 적용  
+// components/catalog/ServiceCard.js - 통일 UX: 체크박스=선택, 카드=상세페이지
 import React from 'react';
-import { Card, Badge, Button } from '../ui/DesignSystem';
+import { Card, Badge } from '../ui/DesignSystem';
 import { normalizeService, formatPrice } from '../../lib/dataTypes';
 
 export default function ServiceCard({ 
   service: rawService, 
   userRole, 
   onServiceDetail,
-  onServiceEdit,
   isSelected = false,
-  onClick
+  onSelect,
+  showCheckbox = false
 }) {
-  // 데이터 정규화
   const service = normalizeService(rawService);
-  const canEdit = ['admin', 'user', 'freelancer'].includes(userRole);
 
   // 이미지 처리
   const getFirstImage = () => {
@@ -33,15 +31,41 @@ export default function ServiceCard({
     return Array.isArray(images) && images.length > 0 ? images[0] : null;
   };
 
+  // 체크박스 클릭 → 선택 토글
+  const handleCheckboxChange = (e) => {
+    e.stopPropagation();
+    if (onSelect) {
+      onSelect(service);
+    }
+  };
+
+  // 카드 클릭 → 상세페이지
+  const handleCardClick = (e) => {
+    if (!e || !e.target) return;
+    
+    // 선택 모드가 활성화되어 있으면 선택, 아니면 상세페이지
+    if (showCheckbox && onSelect) {
+      onSelect(service);
+    } else if (onServiceDetail) {
+      onServiceDetail(service);
+    }
+  };
+
   const firstImage = getFirstImage();
 
   return (
-    <Card 
-      hover={true}
-      selected={isSelected}
-      className="h-full flex flex-col overflow-hidden"
-      onClick={onClick}
+    <div
+      className="h-full cursor-pointer"
+      onClick={handleCardClick}
     >
+      <Card 
+        hover={true}
+        selected={isSelected}
+        className="h-full flex flex-col overflow-hidden transition-all duration-200 active:scale-[0.98]"
+      >
+      {/* 체크박스 제거 */}
+
+
       {/* 이미지 영역 */}
       <div className="aspect-[4/3] bg-gray-100 overflow-hidden -m-6 mb-4">
         {firstImage ? (
@@ -87,58 +111,34 @@ export default function ServiceCard({
         </div>
 
         {/* 설명 */}
-        <div className="mb-6 flex-1">
+        <div className="mb-4 flex-1">
           <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
             {service.description}
           </p>
         </div>
 
-        {/* 플랜 표시 */}
-        {service.isPlan && (
-          <div className="mb-4">
+        {/* 뱃지들 */}
+        <div className="flex flex-wrap gap-2 mt-auto">
+          {service.isPlan && (
             <Badge variant="warning" size="sm">
               플랜 서비스
             </Badge>
-          </div>
-        )}
-
-        {/* 선택 상태 표시 */}
-        {isSelected && (
-          <div className="mb-4">
+          )}
+          
+          {isSelected && (
             <Badge variant="success" size="sm">
               선택됨
             </Badge>
-          </div>
-        )}
+          )}
 
-        {/* 하단 버튼 영역 */}
-        <div className="flex gap-2 mt-auto">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onClick={(e) => {
-              e.stopPropagation();
-              onServiceDetail?.(service, false);
-            }}
-          >
-            상세보기
-          </Button>
-          
-          {canEdit && (
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onServiceEdit?.(service);
-              }}
-            >
-              편집
-            </Button>
+          {!service.isActive && (
+            <Badge variant="secondary" size="sm">
+              비활성
+            </Badge>
           )}
         </div>
       </div>
     </Card>
+    </div>
   );
 }

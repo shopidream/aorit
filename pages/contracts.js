@@ -9,7 +9,8 @@ import {
   EmptyState, 
   LoadingSpinner,
   ContractIcon,
-  PlusIcon
+  PlusIcon,
+  FloatingActionBar
 } from '../components/ui/DesignSystem';
 import { useAuthContext } from '../contexts/AuthContext';
 
@@ -18,6 +19,7 @@ export default function ContractsPage() {
   const router = useRouter();
   const [contracts, setContracts] = useState([]);
   const [contractsLoading, setContractsLoading] = useState(false);
+  const [selectedContracts, setSelectedContracts] = useState([]);
 
   const userRole = user?.role || 'customer';
 
@@ -58,11 +60,13 @@ export default function ContractsPage() {
     router.push(`/contracts/${contract.id}`);
   };
 
-  const handleContractEdit = (contract) => {
-    if (!contract?.id) return;
-    // 편집 모드로 상세보기 페이지 이동
-    router.push(`/contracts/${contract.id}?edit=true`);
+  const handleContractSelect = (contract) => {
+    setSelectedContracts(prev => {
+      const isSelected = prev.find(c => c.id === contract.id);
+      return isSelected ? prev.filter(c => c.id !== contract.id) : [contract];
+    });
   };
+
 
   if (loading) {
     return (
@@ -136,14 +140,32 @@ export default function ContractsPage() {
                   contract={contract}
                   userRole={userRole}
                   onContractDetail={handleContractDetail}
-                  onContractEdit={handleContractEdit}
-                  isSelected={false}
-                  onClick={() => {}} // 계약서는 선택 기능 없음
+                  isSelected={!!selectedContracts.find(c => c.id === contract.id)}
+                  onClick={() => handleContractSelect(contract)}
                 />
               ))}
             </div>
           )}
         </div>
+        {/* 플로팅 액션바 */}
+        {selectedContracts.length > 0 && (
+          <FloatingActionBar
+            actions={[
+              { 
+                label: '상세', 
+                onClick: () => handleContractDetail(selectedContracts[0]), 
+                show: selectedContracts.length === 1 
+              },
+
+              { 
+                label: '계약서 새로 작성', 
+                onClick: handleCreateContract, 
+                variant: 'primary' 
+              }
+            ]}
+            onClear={() => setSelectedContracts([])}
+          />
+        )}
       </div>
   );
 }

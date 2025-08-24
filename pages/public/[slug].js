@@ -9,17 +9,20 @@ import {
   EmptyState,
   StatsCard,
   CheckCircleIcon,
-  StarIcon,
   ClockIcon,
-  PriceIcon,
-  MailIcon,
-  PhoneIcon,
-  GlobeIcon,
-  YoutubeIcon,
-  ExternalLinkIcon,
-  ServiceIcon,
-  PortfolioIcon
+  InfoIcon
 } from '../../components/ui/DesignSystem';
+import { 
+  DollarSign as PriceIcon,
+  Mail as MailIcon,
+  Phone as PhoneIcon,
+  Globe as GlobeIcon,
+  Youtube as YoutubeIcon,
+  ExternalLink as ExternalLinkIcon,
+  Briefcase as ServiceIcon,
+  FolderOpen as PortfolioIcon,
+  Star as StarIcon
+} from 'lucide-react';
 
 export default function PublicPage({ user, services, portfolio, profile }) {
   if (!user) {
@@ -45,8 +48,8 @@ export default function PublicPage({ user, services, portfolio, profile }) {
   }
 
   const snsLinks = profile?.snsLinks ? JSON.parse(profile.snsLinks) : {};
-  const totalProjects = portfolio.length;
-  const activeServices = services.length;
+  const totalProjects = portfolio?.length || 0;
+  const activeServices = services?.length || 0;
 
   return (
     <>
@@ -190,7 +193,7 @@ export default function PublicPage({ user, services, portfolio, profile }) {
               </div>
             </div>
             
-            {services.length > 0 ? (
+            {services && services.length > 0 ? (
               <div className="grid gap-6">
                 {services.map((service) => (
                   <Card key={service.id} className="border-2 border-gray-200 hover:border-blue-500 hover:shadow-lg transition-all duration-200" hover>
@@ -200,20 +203,20 @@ export default function PublicPage({ user, services, portfolio, profile }) {
                       <div className="flex-1">
                         <div className="flex items-start justify-between mb-4">
                           <div>
-                            <h3 className="text-2xl font-bold text-gray-900 mb-2">{service.title}</h3>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-2">{service.title || '서비스명'}</h3>
                             <Badge variant="primary" className="text-sm">
                               {service.category?.name || '미분류'}
                             </Badge>
                           </div>
                         </div>
                         
-                        <p className="text-gray-700 leading-relaxed mb-4">{service.description}</p>
+                        <p className="text-gray-700 leading-relaxed mb-4">{service.description || '서비스 설명이 없습니다.'}</p>
                         
                         {/* 서비스 특징 */}
                         <div className="flex flex-wrap gap-6 text-sm text-gray-600">
                           <div className="flex items-center gap-2">
                             <PriceIcon size={16} className="text-emerald-600" />
-                            <span className="font-semibold">가격: {service.price?.toLocaleString()}원</span>
+                            <span className="font-semibold">가격: {service.price?.toLocaleString() || '문의'}원</span>
                           </div>
                           {service.duration && (
                             <div className="flex items-center gap-2">
@@ -269,7 +272,7 @@ export default function PublicPage({ user, services, portfolio, profile }) {
           </Card>
 
           {/* 포트폴리오 */}
-          {portfolio.length > 0 && (
+          {portfolio && portfolio.length > 0 && (
             <Card>
               <div className="flex items-center gap-3 mb-8">
                 <div className="p-3 bg-purple-100 rounded-xl">
@@ -290,7 +293,7 @@ export default function PublicPage({ user, services, portfolio, profile }) {
                       <div className="aspect-video bg-gray-100 rounded-xl overflow-hidden mb-4">
                         <img 
                           src={item.image} 
-                          alt={item.title}
+                          alt={item.title || '포트폴리오'}
                           className="w-full h-full object-cover"
                         />
                       </div>
@@ -298,8 +301,8 @@ export default function PublicPage({ user, services, portfolio, profile }) {
                     
                     {/* 포트폴리오 정보 */}
                     <div>
-                      <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title}</h3>
-                      <p className="text-gray-600 leading-relaxed mb-4">{item.description}</p>
+                      <h3 className="text-xl font-bold text-gray-900 mb-2">{item.title || '제목 없음'}</h3>
+                      <p className="text-gray-600 leading-relaxed mb-4">{item.description || '설명이 없습니다.'}</p>
                       
                       {/* 기술 스택 */}
                       {item.technologies && Array.isArray(item.technologies) && (
@@ -440,7 +443,7 @@ export async function getServerSideProps({ params }) {
     }));
 
     return {
-      props: {
+      props: JSON.parse(JSON.stringify({
         user: {
           id: publicPage.user.id,
           name: publicPage.user.name,
@@ -449,7 +452,7 @@ export async function getServerSideProps({ params }) {
         services: processedServices,
         portfolio: processedPortfolio,
         profile: publicPage.user.profile
-      }
+      }))
     };
   } catch (error) {
     console.error('페이지 로드 실패:', error);

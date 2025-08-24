@@ -1,13 +1,14 @@
-// components/catalog/ServiceCatalog.js - 탭 형식 서비스 관리 페이지
+// components/catalog/ServiceCatalog.js - data-shepherd-target 속성 추가
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/router';
-import { Card, Button, Badge, PageHeader, EmptyState, LoadingSpinner } from '../ui/DesignSystem';
+import { Card, Button, Badge, PageHeader, EmptyState, LoadingSpinner, FloatingActionBar } from '../ui/DesignSystem';
 import { useAuthContext } from '../../contexts/AuthContext';
 import ServiceCard from './ServiceCard';
 import ServiceForm from '../services/ServiceForm';
 import ServiceDetail from '../services/ServiceDetail';
 import ShareModal from './ShareModal';
 import AIServiceModal from './AIServiceModal';
+import OnboardingGuide from '../onboarding/CustomOnboardingGuide';
 import { normalizeService } from '../../lib/dataTypes';
 import { 
   BriefcaseIcon, 
@@ -21,10 +22,15 @@ import {
   Trash2,
   Share2,
   Link,
-  Eye
+  Eye,
+  Copy,
+  ExternalLink,
+  Calendar,
+  Users,
+  X
 } from 'lucide-react';
 
-// 모던한 Tabs 컴포넌트
+// Tabs 컴포넌트
 const Tabs = ({ tabs, activeTab, onTabChange }) => (
   <div className="border-b border-gray-200 mb-8">
     <nav className="-mb-px flex space-x-8">
@@ -51,27 +57,93 @@ const Tabs = ({ tabs, activeTab, onTabChange }) => (
 export default function ServiceCatalog() {
   const { getAuthHeaders, user } = useAuthContext();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState('list');
+  
+  // URL 파라미터에서 현재 상태 읽기
+  const { view = 'list', id, from, client } = router.query;
+  const userRole = user?.role || 'customer';
+  const isFromClients = from === 'clients' && client;
+
+  // 데이터 상태
   const [categories, setCategories] = useState([]);
   const [services, setServices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedService, setSelectedService] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  // 온보딩 상태 - 테스트용 (관리자는 항상 볼 수 있음)
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  // 온보딩 표시 조건
+  const shouldShowOnboarding = () => {
+    // URL에 onboarding=true 파라미터가 있으면 강제 표시 (테스트용)
+    if (router.query.onboarding === 'true') return true;
+    
+    // localStorage에서 완료 여부 확인
+    if (typeof window !== 'undefined') {
+      const isCompleted = localStorage.getItem('onboarding_completed');
+      if (isCompleted) return false;
+    }
+    
+    // 서비스가 없는 신규 사용자만 표시
+    if (['admin', 'freelancer'].includes(userRole) && services.length === 0) return true;
+    
+    return false;
+  };
+
+  // 서비스 로딩 완료 후 온보딩 상태 설정
+  useEffect(() => {
+    if (!loading) {
+      const initialOnboarding = shouldShowOnboarding();
+      setShowOnboarding(initialOnboarding);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // ← 의존성 배열을 빈 배열로 변경 (처음 한 번만 실행)
+
+  // 선택 상태
   const [selectedServices, setSelectedServices] = useState([]);
-  const [editingService, setEditingService] = useState(null);
+  const [selectionMode, setSelectionMode] = useState(false);
+
+  // 현재 작업 상태 (URL 기반)
   const [viewingService, setViewingService] = useState(null);
+  const [editingService, setEditingService] = useState(null);
   const [deletingService, setDeletingService] = useState(null);
+
+  // 모달 상태
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiGeneratedServices, setAIGeneratedServices] = useState([]);
-  const [refreshKey, setRefreshKey] = useState(0);
   const [shareModal, setShareModal] = useState({ isOpen: false, url: '', serviceCount: 0 });
+  
+  // 링크 관리 상태
+  const [sharedLinks, setSharedLinks] = useState([]);
+  const [linksLoading, setLinksLoading] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(null);
 
-  const userRole = user?.role || 'customer';
-  const { from, client } = router.query;
-  const isFromClients = from === 'clients' && client;
-
+  // 데이터 로딩
   useEffect(() => {
     fetchCategoriesAndServices();
   }, [refreshKey]);
+
+  // URL 상태 동기화
+  useEffect(() => {
+    if (view === 'detail' && id && services.length > 0) {
+      const service = services.find(s => s.id === parseInt(id));
+      if (service && !viewingService) {
+        setViewingService(normalizeService(service));
+      }
+    }
+    
+    if (view === 'edit' && id && !editingService) {
+      loadServiceForEdit(id);
+    }
+  
+    if (view === 'links') {
+      fetchSharedLinks();
+    }
+  }, [view, id, services]);
+  
+  // 선택된 항목이 있을 때만 선택 모드 활성화
+  useEffect(() => {
+    setSelectionMode(selectedServices.length > 0);
+  }, [selectedServices]);
 
   const fetchCategoriesAndServices = async () => {
     try {
@@ -98,6 +170,127 @@ export default function ServiceCatalog() {
     }
   };
 
+  const fetchSharedLinks = async () => {
+    try {
+      setLinksLoading(true);
+      const response = await fetch('/api/shared', { headers: getAuthHeaders() });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setSharedLinks(data.links || []);
+      } else {
+        setSharedLinks([]);
+      }
+    } catch (error) {
+      console.error('링크 히스토리 조회 오류:', error);
+      setSharedLinks([]);
+    } finally {
+      setLinksLoading(false);
+    }
+  };
+
+  const loadServiceForEdit = async (serviceId) => {
+    try {
+      const response = await fetch(`/api/services/${serviceId}`, { headers: getAuthHeaders() });
+      if (response.ok) {
+        const service = await response.json();
+        setEditingService(service);
+      }
+    } catch (error) {
+      console.error('서비스 로드 실패:', error);
+    }
+  };
+
+  // 네비게이션 함수들
+  const navigateTo = (newView, serviceId = null) => {
+    const query = { ...router.query, view: newView };
+    
+    if (serviceId) {
+      query.id = serviceId;
+    } else {
+      delete query.id;
+    }
+    
+    router.push({
+      pathname: router.pathname,
+      query
+    }, undefined, { shallow: true });
+  };
+
+  const handleTabChange = (tabId) => {
+    navigateTo(tabId);
+  };
+
+  // 이벤트 핸들러들
+  const handleServiceDetail = (service) => {
+    if (selectedServices.length > 0) {
+      // 선택 모드일 때는 선택 토글
+      handleServiceSelect(service);
+    } else {
+      // 일반 모드일 때는 상세보기
+      setViewingService(normalizeService(service));
+      navigateTo('detail', service.id);
+    }
+  };
+
+  const handleServiceEdit = (service) => {
+    if (selectedServices.length === 1) {
+      navigateTo('edit', service.id);
+    } else {
+      // 다중 편집 처리 (향후 구현)
+      alert('다중 편집 기능은 준비 중입니다.');
+    }
+  };
+
+  const handleBackToList = () => {
+    setEditingService(null);
+    setViewingService(null);
+    navigateTo('list');
+  };
+
+  const handleServiceCreated = () => {
+    setRefreshKey(prev => prev + 1);
+    navigateTo('list');
+  };
+
+  const handleServiceSaved = () => {
+    setRefreshKey(prev => prev + 1);
+    setEditingService(null);
+    navigateTo('list');
+  };
+
+  const handleDeleteService = async (serviceId, serviceName) => {
+    if (!confirm(`정말로 "${serviceName}" 서비스를 삭제하시겠습니까?`)) {
+      return;
+    }
+
+    setDeletingService(serviceId);
+    try {
+      const response = await fetch(`/api/services/${serviceId}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+
+      if (response.ok) {
+        setRefreshKey(prev => prev + 1);
+        if (editingService?.id === serviceId || viewingService?.id === serviceId) {
+          navigateTo('list');
+        }
+        setSelectedServices(prev => prev.filter(s => s.id !== serviceId));
+        alert('서비스가 성공적으로 삭제되었습니다.');
+      } else {
+        const data = await response.json();
+        alert(data.error || '서비스 삭제에 실패했습니다.');
+      }
+    } catch (error) {
+      console.error('서비스 삭제 오류:', error);
+      alert('서비스 삭제 중 오류가 발생했습니다.');
+    } finally {
+      setDeletingService(null);
+    }
+  };
+
+  // 선택 관련 함수들
   const handleServiceSelect = (service) => {
     const normalizedService = normalizeService(service);
     
@@ -115,53 +308,89 @@ export default function ServiceCatalog() {
     }
   };
 
-  const handleServiceDetail = (service) => {
-    setViewingService(normalizeService(service));
-    setActiveTab('detail');
+  const handleClearSelection = () => {
+    setSelectedServices([]);
+    setSelectionMode(false);
   };
 
-  const handleServiceEdit = async (service) => {
+  const handleCreateQuote = () => {
+    if (selectedServices.length === 0) return;
+    const serviceIds = selectedServices.map(s => s.id).join(',');
+    router.push(isFromClients ? `/quotes/create?client=${client}&services=${serviceIds}` : `/clients?from=services&services=${serviceIds}`);
+  };
+
+  const handleShareServices = async () => {
+    if (selectedServices.length === 0) return;
+    
     try {
-      const response = await fetch(`/api/services/${service.id}`, { headers: getAuthHeaders() });
-      setEditingService(response.ok ? await response.json() : normalizeService(service));
+      const response = await fetch('/api/shared/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAuthHeaders()
+        },
+        body: JSON.stringify({
+          serviceIds: selectedServices.map(s => s.id),
+          title: `${user?.name || '서비스'} 소개`,
+          description: '전문적인 서비스를 제공합니다'
+        })
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setShareModal({
+          isOpen: true,
+          url: data.shareUrl,
+          serviceCount: selectedServices.length
+        });
+        
+        if (view === 'links') {
+          fetchSharedLinks();
+        }
+      } else {
+        alert(data.error || '공유 링크 생성에 실패했습니다');
+      }
     } catch (error) {
-      setEditingService(normalizeService(service));
+      console.error('공유 링크 생성 오류:', error);
+      alert('공유 링크 생성 중 오류가 발생했습니다');
     }
-    setActiveTab('edit');
   };
 
-  const handleDeleteService = async (serviceId, serviceName) => {
-    if (!confirm(`정말로 "${serviceName}" 서비스를 삭제하시겠습니까?`)) {
+  // 링크 관리 함수들
+  const handleCopyLink = async (url) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedLink(url);
+      setTimeout(() => setCopiedLink(null), 2000);
+    } catch (error) {
+      console.error('클립보드 복사 실패:', error);
+    }
+  };
+
+  const handleDeleteSharedLink = async (linkId, linkTitle) => {
+    if (!confirm(`"${linkTitle}" 링크를 삭제하시겠습니까?`)) {
       return;
     }
 
-    setDeletingService(serviceId);
     try {
-      const response = await fetch(`/api/services/${serviceId}`, {
+      const response = await fetch(`/api/shared/${linkId}`, {
         method: 'DELETE',
         headers: getAuthHeaders()
       });
 
       if (response.ok) {
-        setRefreshKey(prev => prev + 1);
-        if (editingService && editingService.id === serviceId) {
-          setEditingService(null);
-          setActiveTab('list');
-        }
-        setSelectedServices(prev => prev.filter(s => s.id !== serviceId));
-        alert('서비스가 성공적으로 삭제되었습니다.');
+        setSharedLinks(prev => prev.filter(link => link.id !== linkId));
       } else {
-        const data = await response.json();
-        alert(data.error || '서비스 삭제에 실패했습니다.');
+        alert('링크 삭제에 실패했습니다.');
       }
     } catch (error) {
-      console.error('서비스 삭제 오류:', error);
-      alert('서비스 삭제 중 오류가 발생했습니다.');
-    } finally {
-      setDeletingService(null);
+      console.error('링크 삭제 오류:', error);
+      alert('링크 삭제 중 오류가 발생했습니다.');
     }
   };
 
+  // AI 서비스 관련 함수들
   const handleAddAIServiceToMyServices = async (service) => {
     try {
       const category = await createCategoryIfNeeded(service.category);
@@ -217,63 +446,6 @@ export default function ServiceCatalog() {
     }
   };
 
-  const handleServiceSaved = () => {
-    setRefreshKey(prev => prev + 1);
-    setEditingService(null);
-    setActiveTab('list');
-  };
-
-  const handleServiceCreated = () => {
-    setRefreshKey(prev => prev + 1);
-    setActiveTab('list');
-  };
-
-  const handleBackToList = () => {
-    setEditingService(null);
-    setViewingService(null);
-    setActiveTab('list');
-  };
-
-  const handleCreateQuote = () => {
-    if (selectedServices.length === 0) return;
-    const serviceIds = selectedServices.map(s => s.id).join(',');
-    router.push(isFromClients ? `/quotes/create?client=${client}&services=${serviceIds}` : `/clients?from=services&services=${serviceIds}`);
-  };
-
-  const handleShareServices = async () => {
-    if (selectedServices.length === 0) return;
-    
-    try {
-      const response = await fetch('/api/shared/create', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...getAuthHeaders()
-        },
-        body: JSON.stringify({
-          serviceIds: selectedServices.map(s => s.id),
-          title: `${user?.name || '서비스'} 소개`,
-          description: '전문적인 서비스를 제공합니다'
-        })
-      });
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setShareModal({
-          isOpen: true,
-          url: data.shareUrl,
-          serviceCount: selectedServices.length
-        });
-      } else {
-        alert(data.error || '공유 링크 생성에 실패했습니다');
-      }
-    } catch (error) {
-      console.error('공유 링크 생성 오류:', error);
-      alert('공유 링크 생성 중 오류가 발생했습니다');
-    }
-  };
-
   const totalPrice = selectedServices.reduce((sum, service) => sum + (parseFloat(service.price) || 0), 0);
 
   const planGroups = services.reduce((groups, service) => {
@@ -307,12 +479,12 @@ export default function ServiceCatalog() {
       label: '링크 관리',
       icon: <Link size={20} />
     },
-    ...(viewingService ? [{ 
+    ...(view === 'detail' ? [{ 
       id: 'detail', 
       label: '서비스 상세',
       icon: <Eye size={20} />
     }] : []),
-    ...(editingService ? [{ 
+    ...(view === 'edit' ? [{ 
       id: 'edit', 
       label: '서비스 편집',
       icon: <Edit size={20} />
@@ -320,56 +492,60 @@ export default function ServiceCatalog() {
   ];
 
   return (
-    <div className="max-w-6xl space-y-8">
+    <div className="max-w-6xl space-y-8 pb-24">
       
-      {/* 페이지 헤더 */}
-      <PageHeader
-        title={
-          <div className="flex items-center gap-3">
-            <span>서비스 관리</span>
-            <Badge variant="info" icon={BriefcaseIcon}>
-              {services.length}개
-            </Badge>
-          </div>
-        }
-        description={
-          isFromClients 
-            ? '견적서 작성을 위해 서비스를 선택하세요' 
-            : '전문적인 디지털 솔루션으로 비즈니스 성장을 지원합니다'
-        }
-        action={
-          <div className="flex items-center gap-3">
-            {isFromClients && (
-              <Button 
-                variant="outline" 
-                onClick={() => router.back()}
-                icon={ArrowLeft}
-                size="sm"
-              >
-                고객 선택으로 돌아가기
-              </Button>
-            )}
-            <div className="flex gap-2">
-              {['admin', 'freelancer'].includes(userRole) && (
-                <Button
-                  variant="primary"
-                  onClick={() => setActiveTab('create')}
-                  icon={PlusIcon}
+      {/* 페이지 헤더 - Shepherd 타겟 */}
+      <div data-shepherd-target="page-header">
+        <PageHeader
+          title={
+            <div className="flex items-center gap-3">
+              <span>서비스 관리</span>
+              <Badge variant="info" icon={BriefcaseIcon}>
+                {services.length}개
+              </Badge>
+            </div>
+          }
+          description={
+            isFromClients 
+              ? '견적서 작성을 위해 서비스를 선택하세요' 
+              : '전문적인 디지털 솔루션으로 비즈니스 성장을 지원합니다'
+          }
+          action={
+            <div className="flex items-center gap-3">
+              {isFromClients && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => router.back()}
+                  icon={ArrowLeft}
+                  size="sm"
                 >
-                  새 서비스 등록
+                  고객 선택으로 돌아가기
                 </Button>
               )}
-              <Button 
-                variant="outline" 
-                onClick={() => setShowAIModal(true)}
-                icon={SparklesIcon}
-              >
-                AI 서비스 등록
-              </Button>
+              <div className="flex gap-2">
+                {['admin', 'freelancer'].includes(userRole) && (
+                  <div data-shepherd-target="new-service-btn">
+                    <Button
+                      variant="primary"
+                      onClick={() => navigateTo('create')}
+                      icon={PlusIcon}
+                    >
+                      새 서비스 등록
+                    </Button>
+                  </div>
+                )}
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowAIModal(true)}
+                  icon={SparklesIcon}
+                >
+                  AI 서비스 등록
+                </Button>
+              </div>
             </div>
-          </div>
-        }
-      />
+          }
+        />
+      </div>
 
       {/* 진행 상태 표시 */}
       {isFromClients && (
@@ -388,48 +564,16 @@ export default function ServiceCatalog() {
         </Card>
       )}
 
-      {/* 선택된 서비스 상태 - 항상 표시 */}
-      <Card className="p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-medium text-gray-700">
-            {selectedServices.length > 0 
-              ? `선택: ${selectedServices.length}개 (${totalPrice.toLocaleString()}원)`
-              : '서비스를 선택하세요'
-            }
-          </span>
-          <div className="flex gap-2">
-            <Button 
-              size="sm" 
-              variant="outline" 
-              icon={Share2}
-              onClick={handleShareServices}
-              disabled={selectedServices.length === 0}
-            >
-              공유
-            </Button>
-            <Button 
-              size="sm"
-              onClick={handleCreateQuote} 
-              disabled={selectedServices.length === 0}
-              variant={isFromClients ? "primary" : "outline"}
-              icon={isFromClients ? CheckIcon : undefined}
-            >
-              {isFromClients ? '견적 작성' : '견적서 작성'}
-            </Button>
-          </div>
-        </div>
-      </Card>
-
       {/* 탭 네비게이션 */}
       <Tabs
         tabs={tabs}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
+        activeTab={view}
+        onTabChange={handleTabChange}
       />
 
       {/* 탭 콘텐츠 */}
       <div className="min-h-[400px]">
-        {activeTab === 'list' && (
+        {view === 'list' && (
           <div className="space-y-8">
             
             {/* AI 생성된 서비스들 */}
@@ -526,9 +670,10 @@ export default function ServiceCatalog() {
                               service={normalizedService}
                               userRole={userRole}
                               onServiceDetail={handleServiceDetail}
-                              onServiceEdit={handleServiceEdit}
                               isSelected={isSelected}
-                              onClick={() => !hasOtherSelected && handleServiceSelect(normalizedService)}
+                              onSelect={handleServiceSelect}
+                              selectable={selectionMode}
+                              showCheckbox={selectedServices.length > 0}
                             />
                             {hasOtherSelected && (
                               <div className="absolute inset-0 bg-gray-500 bg-opacity-20 rounded-2xl flex items-center justify-center pointer-events-none">
@@ -546,75 +691,71 @@ export default function ServiceCatalog() {
               </div>
             )}
 
-            {/* 일반 서비스들 */}
-            {categories.map((category) => {
-              const normalServices = (category.services || []).filter(service => !service.isPlan);
-              if (normalServices.length === 0) return null;
+            {/* 일반 서비스들 - Shepherd 타겟 */}
+            <div data-shepherd-target="service-list">
+              {categories.map((category) => {
+                const normalServices = (category.services || []).filter(service => !service.isPlan);
+                if (normalServices.length === 0) return null;
 
-              return (
-                <div key={category.id} className="space-y-6">
-                  <div className="border-b border-gray-200 pb-6">
-                    <div className="flex items-center justify-between mb-3">
-                      <h2 className="text-2xl font-bold text-gray-900">{category.name}</h2>
-                      {['admin', 'freelancer'].includes(userRole) && (
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={() => {
-                            if (confirm('정말 이 카테고리를 삭제하시겠습니까?')) {
-                              // 삭제 로직 구현
-                            }
-                          }}
-                        >
-                          삭제
-                        </Button>
-                      )}
+                return (
+                  <div key={category.id} className="space-y-6">
+                    <div className="border-b border-gray-200 pb-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-2xl font-bold text-gray-900">{category.name}</h2>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Badge variant="secondary" size="sm">일반 서비스</Badge>
+                        <span className="text-sm text-gray-500">{normalServices.length}개 서비스</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Badge variant="secondary" size="sm">일반 서비스</Badge>
-                      <span className="text-sm text-gray-500">{normalServices.length}개 서비스</span>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                      {normalServices.map((service) => {
+                        const normalizedService = normalizeService(service);
+                        const isSelected = selectedServices.find(s => s.id === normalizedService.id);
+                        
+                        return (
+                          <ServiceCard
+                            key={normalizedService.id}
+                            service={normalizedService}
+                            userRole={userRole}
+                            onServiceDetail={handleServiceDetail}
+                            isSelected={!!isSelected}
+                            onSelect={handleServiceSelect}
+                            selectable={selectionMode}
+                            showCheckbox={true}
+                          />
+                        );
+                      })}
                     </div>
                   </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {normalServices.map((service) => {
-                      const normalizedService = normalizeService(service);
-                      return (
-                        <ServiceCard
-                          key={normalizedService.id}
-                          service={normalizedService}
-                          userRole={userRole}
-                          onServiceDetail={handleServiceDetail}
-                          onServiceEdit={handleServiceEdit}
-                          isSelected={!!selectedServices.find(s => s.id === normalizedService.id)}
-                          onClick={() => handleServiceSelect(normalizedService)}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
 
             {/* 빈 상태 */}
             {categories.length === 0 && Object.keys(planGroups).length === 0 && aiGeneratedServices.length === 0 && !loading && (
-              <EmptyState
-                icon={BriefcaseIcon}
-                title="등록된 서비스가 없습니다"
-                description="새 서비스를 추가해보세요"
-                action={
-                  ['admin', 'freelancer'].includes(userRole) && (
-                    <Button onClick={() => setActiveTab('create')} icon={PlusIcon}>
-                      첫 서비스 등록하기
-                    </Button>
-                  )
-                }
-              />
+              <div data-shepherd-target="service-list">
+                <EmptyState
+                  icon={BriefcaseIcon}
+                  title="등록된 서비스가 없습니다"
+                  description="새 서비스를 추가해보세요"
+                  action={
+                    ['admin', 'freelancer'].includes(userRole) && (
+                      <div data-shepherd-target="new-service-btn">
+                        <Button onClick={() => navigateTo('create')} icon={PlusIcon}>
+                          첫 서비스 등록하기
+                        </Button>
+                      </div>
+                    )
+                  }
+                />
+              </div>
             )}
           </div>
         )}
 
-        {activeTab === 'create' && (
+        {view === 'create' && (
           <Card>
             <div className="p-8">
               <div className="flex items-center gap-3 mb-8">
@@ -631,21 +772,24 @@ export default function ServiceCatalog() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setActiveTab('list')}
+                  onClick={() => navigateTo('list')}
                   icon={ArrowLeft}
                 >
                   서비스 목록으로 돌아가기
                 </Button>
               </div>
               
-              <ServiceForm 
-                onSuccess={handleServiceCreated}
-              />
+              {/* 서비스 폼 - Shepherd 타겟 */}
+              <div data-shepherd-target="service-form">
+                <ServiceForm 
+                  onSuccess={handleServiceCreated}
+                />
+              </div>
             </div>
           </Card>
         )}
 
-        {activeTab === 'detail' && viewingService && (
+        {view === 'detail' && viewingService && (
           <ServiceDetail
             service={viewingService}
             user={user}
@@ -658,7 +802,7 @@ export default function ServiceCatalog() {
           />
         )}
 
-        {activeTab === 'links' && (
+        {view === 'links' && (
           <Card>
             <div className="p-8">
               <div className="flex items-center gap-3 mb-8">
@@ -675,24 +819,116 @@ export default function ServiceCatalog() {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setActiveTab('list')}
+                  onClick={() => navigateTo('list')}
                   icon={ArrowLeft}
                 >
                   서비스 목록으로 돌아가기
                 </Button>
               </div>
               
-              {/* TODO: 링크 히스토리 테이블 구현 */}
-              <div className="text-center py-16 text-gray-500">
-                <Link size={48} className="mx-auto mb-4 text-gray-300" />
-                <h3 className="text-lg font-semibold mb-2">링크 히스토리</h3>
-                <p>공유 링크 관리 기능을 구현 예정입니다</p>
-              </div>
+              {linksLoading ? (
+                <div className="flex justify-center py-16">
+                  <div className="text-center">
+                    <LoadingSpinner size="lg" className="mx-auto mb-4" />
+                    <p className="text-gray-600">링크 히스토리를 불러오는 중...</p>
+                  </div>
+                </div>
+              ) : sharedLinks.length > 0 ? (
+                <div className="space-y-4">
+                  {sharedLinks.map((link) => (
+                    <Card key={link.id} className="p-6 hover:shadow-md transition-shadow">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="text-lg font-semibold text-gray-900">{link.title}</h3>
+                            <Badge variant={link.isActive ? "success" : "secondary"} size="sm">
+                              {link.isActive ? '활성' : '비활성'}
+                            </Badge>
+                          </div>
+                          
+                          <p className="text-sm text-gray-600 mb-3">{link.description}</p>
+                          
+                          <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                            <div className="flex items-center gap-1">
+                              <Users size={14} />
+                              <span>{link.serviceCount}개 서비스</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Calendar size={14} />
+                              <span>{new Date(link.createdAt).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-lg">
+                            <code className="flex-1 text-sm text-gray-700 truncate">
+                              {link.shareUrl}
+                            </code>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleCopyLink(link.shareUrl)}
+                              icon={copiedLink === link.shareUrl ? CheckIcon : Copy}
+                              className={copiedLink === link.shareUrl ? 'text-green-600 border-green-300' : ''}
+                            >
+                              {copiedLink === link.shareUrl ? '복사됨' : '복사'}
+                            </Button>
+                          </div>
+                          
+                          {link.services && link.services.length > 0 && (
+                            <div className="mt-4">
+                              <h4 className="text-sm font-medium text-gray-700 mb-2">포함된 서비스:</h4>
+                              <div className="flex flex-wrap gap-2">
+                                {link.services.map((service) => (
+                                  <Badge key={service.id} variant="secondary" size="sm">
+                                    {service.title}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-start gap-2 ml-4">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => window.open(link.shareUrl, '_blank')}
+                            icon={ExternalLink}
+                          >
+                            열기
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="danger"
+                            onClick={() => handleDeleteSharedLink(link.id, link.title)}
+                            icon={Trash2}
+                          >
+                            삭제
+                          </Button>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-16 text-gray-500">
+                  <Link size={48} className="mx-auto mb-4 text-gray-300" />
+                  <h3 className="text-lg font-semibold mb-2">생성된 링크가 없습니다</h3>
+                  <p className="mb-6">서비스를 선택하고 공유 링크를 생성해보세요</p>
+                  <Button
+                    variant="outline"
+                    onClick={() => navigateTo('list')}
+                    icon={ArrowLeft}
+                  >
+                    서비스 목록으로 이동
+                  </Button>
+                </div>
+              )}
             </div>
           </Card>
         )}
 
-        {activeTab === 'edit' && editingService && (
+        {view === 'edit' && editingService && (
           <Card>
             <div className="p-8">
               <div className="flex items-center justify-between mb-8">
@@ -739,6 +975,33 @@ export default function ServiceCatalog() {
         )}
       </div>
 
+      {/* 플로팅 액션바 */}
+      {selectedServices.length > 0 && (
+        <FloatingActionBar
+        actions={[
+          { 
+            label: '상세', 
+            onClick: () => {
+              const service = selectedServices[0];
+              setViewingService(normalizeService(service));
+              navigateTo('detail', service.id);
+            }, 
+            show: selectedServices.length === 1 
+          },
+          { 
+            label: '공유', 
+            onClick: handleShareServices 
+          },
+          { 
+            label: isFromClients ? '견적 작성' : '견적서 작성', 
+            onClick: handleCreateQuote, 
+            variant: 'primary' 
+          }
+        ]}
+        onClear={handleClearSelection}
+      />
+      )}
+
       {/* 공유 모달 */}
       <ShareModal
         isOpen={shareModal.isOpen}
@@ -752,6 +1015,16 @@ export default function ServiceCatalog() {
         isOpen={showAIModal}
         onClose={() => setShowAIModal(false)}
         onServicesGenerated={(result) => setAIGeneratedServices(result.suggestedServices || [])}
+      />
+
+      {/* 커스텀 온보딩 가이드 */}
+      <OnboardingGuide 
+        isActive={showOnboarding}
+        onComplete={() => {
+          setShowOnboarding(false);
+          setRefreshKey(prev => prev + 1);
+        }}
+        onSkip={() => setShowOnboarding(false)}
       />
     </div>
   );

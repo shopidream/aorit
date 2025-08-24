@@ -11,7 +11,8 @@ import {
   EmptyState, 
   LoadingSpinner,
   DocumentIcon,
-  PlusIcon
+  PlusIcon,
+  FloatingActionBar
 } from '../components/ui/DesignSystem';
 import { 
   ArrowLeft,
@@ -348,45 +349,7 @@ export default function QuotesPage() {
           </Card>
         )}
 
-        {/* 선택된 견적서 상태 */}
-        <Card className="p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              {selectedQuote ? (
-                <div className="space-y-1">
-                  <div className="font-semibold text-gray-900">
-                    선택된 견적서: #{selectedQuote.id}
-                  </div>
-                  <div className="text-sm text-gray-600">
-                    {(selectedQuote.amount || 0).toLocaleString()}원
-                    {selectedQuote.client && (
-                      <span className="ml-2">• {selectedQuote.client.name}</span>
-                    )}
-                  </div>
-                </div>
-              ) : (
-                <div className="font-semibold text-gray-900">
-                  견적서를 선택하세요
-                </div>
-              )}
-            </div>
-            <Button 
-              onClick={handleCreateContract} 
-              disabled={!selectedQuote}
-              variant={isFromContracts ? "primary" : "outline"}
-            >
-              {isFromContracts ? '이 견적서로 계약서 작성' : '계약서 작성'}
-            </Button>
-          </div>
-          
-          {selectedQuote && (
-            <div className="mt-4">
-              <Badge variant="primary" size="sm">
-                견적서 #{selectedQuote.id} - {selectedQuote.client?.name || '고객 정보 없음'}
-              </Badge>
-            </div>
-          )}
-        </Card>
+        
 
         {/* 탭 네비게이션 */}
         <Tabs
@@ -655,6 +618,27 @@ export default function QuotesPage() {
             </Card>
           )}
         </div>
+        {/* 플로팅 액션바 */}
+        {selectedQuote && (
+          <FloatingActionBar
+            actions={[
+              { 
+                label: '상세', 
+                onClick: () => handleQuoteDetail(selectedQuote)
+              },
+              { 
+                label: '편집', 
+                onClick: () => handleQuoteEdit(selectedQuote)
+              },
+              { 
+                label: isFromContracts ? '계약서 작성' : '계약서 작성', 
+                onClick: handleCreateContract, 
+                variant: 'primary' 
+              }
+            ]}
+            onClear={() => setSelectedQuote(null)}
+          />
+        )}
       </div>
   );
 }

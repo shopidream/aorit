@@ -234,33 +234,7 @@ export default function ContractCard({
         </div>
       )}
 
-      {/* 하단 버튼 영역 */}
-      <div className="flex gap-2 mt-auto">
-        <Button
-          variant="outline"
-          size="sm"
-          className="flex-1"
-          onClick={(e) => {
-            e.stopPropagation();
-            onContractDetail?.(contract);
-          }}
-        >
-          상세보기
-        </Button>
-        
-        {canEdit && (
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              onContractEdit?.(contract);
-            }}
-          >
-            편집
-          </Button>
-        )}
-      </div>
+      
     </Card>
   );
 }

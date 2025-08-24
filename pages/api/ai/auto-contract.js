@@ -388,7 +388,7 @@ async function designContractStructureWithGPT({ contractData, selectedServices, 
           role: 'user',
           content: prompt
         }],
-        max_tokens: 4000,
+        max_tokens: 10000,
         temperature: 0.1
       })
     });
@@ -409,6 +409,15 @@ async function designContractStructureWithGPT({ contractData, selectedServices, 
       throw new Error('GPT로부터 응답을 받지 못했습니다');
     }
 
+    
+
+    // 🔥 여기에 추가 🔥
+const parseResult = parseGPTStructureResponse(content);
+console.log('🔍 GPT 구조 설계 결과 확인:');
+console.log('- 조항 개수:', parseResult.structure?.clauseStructure?.length || 0);
+console.log('- 조항 번호들:', parseResult.structure?.clauseStructure?.map(c => `${c.number}.${c.title}`) || []);
+
+
     return parseGPTStructureResponse(content);
 
   } catch (error) {
@@ -420,7 +429,8 @@ async function designContractStructureWithGPT({ contractData, selectedServices, 
   }
 }
 
-// GPT 구조 설계 프롬프트 (기존 함수 유지)
+// GPT 구조 설계 프롬프트 (게약서 조항수 제한 해제)
+
 function createGPTStructurePrompt({ contractData, selectedServices, totalAmount, legalData, lengthOption, quoteData }) {
   const servicesText = selectedServices && selectedServices.length > 0
     ? selectedServices.map((s, i) =>
@@ -428,11 +438,33 @@ function createGPTStructurePrompt({ contractData, selectedServices, totalAmount,
       ).join('\n\n')
     : `${contractData?.serviceName || ''}: ${contractData?.serviceDescription || ''}`;
 
-  const lengthInstruction = {
-    simple: '간소하고 핵심적인 조항만 포함. 복잡한 관리 절차 생략.',
-    standard: '일반적인 계약서 수준의 조항 포함.',
-    detailed: '견적서의 각 세부항목을 구체적으로 반영. 포괄적 보호 조항 포함.'
-  }[lengthOption.detailLevel] || '일반적인 계약서 수준의 조항 포함.';
+  // 업로드 모드 감지 - isUploadedContract 또는 originalClauses 존재 여부 확인
+  const uploadMode = contractData?.isUploadedContract || contractData?.originalClauses || contractData?.metadata?.isUploadedContract;
+  const originalClauseCount = contractData?.originalClauseCount || contractData?.metadata?.originalClauseCount || 0;
+
+  console.log('🔍 업로드 모드 감지:', { 
+    uploadMode, 
+    originalClauseCount, 
+    hasOriginalClauses: !!contractData?.originalClauses,
+    isUploadedContract: contractData?.isUploadedContract 
+  });
+
+  const lengthInstruction = uploadMode 
+    ? `원본 계약서의 모든 조항을 반드시 포함하세요. 원본에 ${originalClauseCount}개 조항이 있다면 ${originalClauseCount}개 구조를 모두 설계하세요. 조항 수를 임의로 줄이지 마세요.`
+    : {
+      simple: '간소하고 핵심적인 조항만 포함. 복잡한 관리 절차 생략.',
+      standard: '일반적인 계약서 수준의 조항 포함.',
+      detailed: '견적서의 각 세부항목을 구체적으로 반영. 포괄적 보호 조항 포함.'
+    }[lengthOption.detailLevel] || '일반적인 계약서 수준의 조항 포함.';
+
+  // 조항 개수 지시 - 업로드 모드에서는 제한 완전 해제
+  const clauseCountInstruction = uploadMode
+    ? `- 🔴 업로드된 원본 계약서의 모든 조항을 포함하세요 (조항 수 제한 절대 없음)`
+    : lengthOption.detailLevel === 'minimal' 
+      ? '- 필수 조항 포함 (8개 이상)' 
+      : lengthOption.detailLevel === 'comprehensive' 
+        ? '- 포괄적이고 상세한 조항 포함 (15개 이상, 필요시 25개까지)' 
+        : '- 표준적인 조항 구성 (12개 이상, 필요시 20개까지)';
 
   // 견적서 동기화 정보 추가
   const paymentInfo = quoteData && quoteData.paymentTerms
@@ -443,13 +475,6 @@ function createGPTStructurePrompt({ contractData, selectedServices, totalAmount,
     
   const inspectionInfo = `검수기간: ${quoteData?.inspectionDays || 0}일${(quoteData?.inspectionDays || 0) === 0 ? '(즉시)' : ''}`;
 
-  console.log('📅 납기/검수 디버깅:', {
-    deliveryDays: quoteData?.deliveryDays,
-    inspectionDays: quoteData?.inspectionDays,
-    deliveryInfo,
-    inspectionInfo
-  });
-
   return `당신은 한국 계약서 기획 전문가입니다.
 아래 견적서·계약 정보를 분석하여 계약서 구조(조항 목록과 각 조항의 핵심요점)만 JSON으로 설계하세요.
 출력은 반드시 유효한 JSON 하나만 반환하십시오. 설명 문구는 절대 포함하지 마십시오.
@@ -458,6 +483,7 @@ function createGPTStructurePrompt({ contractData, selectedServices, totalAmount,
 === 계약서 길이 설정 ===
 길이 옵션: ${lengthOption.name} (${lengthOption.description})
 상세도: ${lengthOption.detailLevel}
+${uploadMode ? '🔴 ** 업로드 모드 - 원본 조항 수 보존 필수 ** 🔴' : ''}
 조항 구성 지침: ${lengthInstruction}
 
 === 입력(요약) ===
@@ -478,16 +504,15 @@ ${servicesText}
 
 === 역할 ===
 계약서 구조 설계자:
-1) 서비스 특성을 분석해서 필수 포함 조항만 선별하세요.
+1) 서비스 특성을 분석해서 ${uploadMode ? '원본 조항을 모두 유지하며' : '필수 포함 조항만 선별하세요'}.
    - 서비스가 원격이면 현장 안전·출장비 관련 조항 제외
-   - 서비스가 무형이면 장비 관리·보험 제외
+   - 서비스가 무형이면 장비 관리·보험 제외  
    - 제조/물리 서비스면 납품물·검수·품질조항 포함
 2) 반드시 포함할 항목:
    - 계약 목적, 계약금액 및 지급조건(견적서 조건 반영), 서비스별 납품물 및 완료기준, 검수/인수(견적서 기간 반영), 지식재산권(해당 시), 하자보수, 수정 범위, 손해배상, 분쟁해결(관할법원)
 3) ${lengthOption.name} 수준에 맞는 조항 개수 조절:
-   ${lengthOption.detailLevel === 'minimal' ? '- 최소 필수 조항만 포함 (8-12개)' :
-     lengthOption.detailLevel === 'comprehensive' ? '- 포괄적이고 상세한 조항 포함 (18-25개)' :
-     '- 표준적인 조항 구성 (12-18개)'}
+   ${clauseCountInstruction}
+   ${uploadMode ? '** 중요: 원본 계약서에 21개 조항이 있다면 반드시 21개를 모두 설계하세요 **' : ''}
 4) 출력 스키마(엄격 준수):
 {
   "analysis": "서비스 특성 및 ${lengthOption.name} 적용 요약(한 줄)",
@@ -562,6 +587,12 @@ async function writeDetailedClausesWithClaude({ structure, contractData, selecte
     console.log('🔍 Claude 파싱 결과 확인:');
     console.log('- 파싱 성공:', parseResult.success);
     console.log('- 파싱된 조항 개수:', parseResult.clauses?.length || 0);
+
+    // 🔥 여기에 추가 🔥
+console.log('🔍 Claude 작성 결과 확인:');
+console.log('- 생성된 조항 개수:', parseResult.clauses?.length || 0);
+console.log('- 생성된 조항 제목들:', parseResult.clauses?.map(c => `${c.order || 'X'}.${c.title}`) || []);
+
     
     return parseResult;
 
@@ -592,6 +623,12 @@ function createClaudeDetailPrompt({ structure, contractData, selectedServices, l
     : '검수기간: 0일(즉시)';  
 
   const clauseCount = structure?.clauseStructure?.length || 0;
+
+  // 🔥 여기에 추가 🔥  
+console.log('🎯 Claude에게 전달하는 조항 수:', clauseCount);
+console.log('🎯 GPT 구조 목록:', structure?.clauseStructure?.map(c => `${c.number}.${c.title}`) || []);
+
+
   const detailInstructions = {
     minimal: {
       instruction: '각 조항은 핵심 내용만 간결하게 작성하세요.',

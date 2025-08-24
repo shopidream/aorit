@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, Settings, FileText, AlertTriangle, Eye, EyeOff } from 'lucide-react';
+import ClauseAnalyzer from './ClauseAnalyzer';
 
 export default function ClauseSelector({ 
   contractData, 
@@ -76,8 +77,40 @@ export default function ClauseSelector({
     }
   };
 
+  // 위험도에 따른 조항 뱃지 색상 결정
+  const getClauseRiskBadge = (clause) => {
+    const content = clause.content?.toLowerCase() || '';
+    const title = clause.title?.toLowerCase() || '';
+    
+    // 간단한 위험도 평가 (ClauseAnalyzer와 동일한 로직 일부)
+    const highRiskKeywords = ['환불 불가', '취소 불가', '독점권', '일방적', '즉시 해지'];
+    const mediumRiskKeywords = ['하자보증', '별도 협의', '추가 비용'];
+    
+    const hasHighRisk = highRiskKeywords.some(keyword => content.includes(keyword) || title.includes(keyword));
+    const hasMediumRisk = mediumRiskKeywords.some(keyword => content.includes(keyword) || title.includes(keyword));
+    
+    if (hasHighRisk) {
+      return { color: 'bg-red-100 text-red-700 border-red-300', text: '고위험' };
+    } else if (hasMediumRisk) {
+      return { color: 'bg-yellow-100 text-yellow-700 border-yellow-300', text: '주의' };
+    } else {
+      return { color: 'bg-green-100 text-green-700 border-green-300', text: '안전' };
+    }
+  };
+
   return (
     <div className="space-y-6">
+      
+      {/* AI 조항 검토 - hideAnalysis가 false일 때만 표시 */}
+      {!hideAnalysis && clauses.length > 0 && (
+        <ClauseAnalyzer 
+          clauses={clauses}
+          onClauseUpdate={(updatedClauses) => {
+            setClauses(updatedClauses);
+            onClausesChange?.(updatedClauses);
+          }}
+        />
+      )}
       
       {/* 선택된 조항 목록 */}
       <div className="bg-white border rounded-lg p-6">
@@ -130,6 +163,7 @@ export default function ClauseSelector({
             {clauses.map((clause, index) => {
               const clauseKey = clause.id || index;
               const isExpanded = expandedClauses.has(clauseKey);
+              const riskBadge = getClauseRiskBadge(clause);
               
               return (
                 <div key={clauseKey} className="border border-gray-200 rounded-lg p-4">
@@ -194,6 +228,12 @@ export default function ClauseSelector({
                             제{index + 1}조
                           </span>
                           <h4 className="font-medium text-gray-900">{clause.title}</h4>
+                          
+                          {/* 위험도 뱃지 */}
+                          <span className={`text-xs px-2 py-1 rounded border font-medium ${riskBadge.color}`}>
+                            {riskBadge.text}
+                          </span>
+                          
                           {clause.essential && (
                             <span className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded border border-red-200">
                               필수
@@ -328,19 +368,25 @@ export default function ClauseSelector({
                 <div className="p-8">
                   <h3 className="text-lg font-bold mb-6">계약 조항</h3>
                   <div className="space-y-6">
-                    {clauses.map((clause, index) => (
-                      <div key={clause.id || index}>
-                        <h4 className="text-lg font-bold mb-3 border-l-4 border-purple-500 pl-3">
-                          제 {index + 1} 조 ({clause.title || '조항'})
-                          {clause.essential && (
-                            <span className="ml-2 text-xs text-red-600 bg-red-50 px-2 py-1 rounded">필수</span>
-                          )}
-                        </h4>
-                        <p className="text-gray-700 leading-relaxed pl-6 whitespace-pre-line">
-                          {clause.content || '조항 내용이 없습니다.'}
-                        </p>
-                      </div>
-                    ))}
+                    {clauses.map((clause, index) => {
+                      const riskBadge = getClauseRiskBadge(clause);
+                      return (
+                        <div key={clause.id || index}>
+                          <h4 className="text-lg font-bold mb-3 border-l-4 border-purple-500 pl-3 flex items-center">
+                            제 {index + 1} 조 ({clause.title || '조항'})
+                            <span className={`ml-3 text-xs px-2 py-1 rounded border font-medium ${riskBadge.color}`}>
+                              {riskBadge.text}
+                            </span>
+                            {clause.essential && (
+                              <span className="ml-2 text-xs text-red-600 bg-red-50 px-2 py-1 rounded">필수</span>
+                            )}
+                          </h4>
+                          <p className="text-gray-700 leading-relaxed pl-6 whitespace-pre-line">
+                            {clause.content || '조항 내용이 없습니다.'}
+                          </p>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>

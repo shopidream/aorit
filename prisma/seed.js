@@ -40,14 +40,14 @@ async function main() {
       address: '경기도 성남시 분당구 동판교로 52번길 9-4, 101',
       
       // 담당자 정보
-      contactName: 'Shopidream 팀',
+      contactName: '고객지원팀',
       contactPhone: '02-1666-4125',
       contactEmail: 'cs@shopidream.com',
       
       // 회사 정보 (새 스키마 필드들)
-      companyName: '(주)쇼피드림',
-      ceoName: '대표이사',
-      businessNumber: '123-45-67890',
+      companyName: '펫돌(주)',
+      ceoName: '이주용',
+      businessNumber: '144-81-24257',
       companyPhone: '02-1666-4125',
       companyEmail: 'cs@shopidream.com',
       companyAddress: '경기도 성남시 분당구 동판교로 52번길 9-4, 101',
@@ -55,9 +55,9 @@ async function main() {
       businessItem: '전자상거래 플랫폼 개발',
       
       // 계좌 정보
-      bankName: '국민은행',
-      accountNumber: '123456-78-901234',
-      accountHolder: '(주)쇼피드림'
+      bankName: '기업은행',
+      accountNumber: '990-016700-01-018',
+      accountHolder: '펫돌(주)'
     }
   });
 

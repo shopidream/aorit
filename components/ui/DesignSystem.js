@@ -1,4 +1,4 @@
-// components/ui/DesignSystem.js - 통일된 네이비/블루 색상 체계 + 모던 Input 스타일
+// components/ui/DesignSystem.js - 통일된 네이비/블루 색상 체계 + 모던 Input 스타일 + FloatingActionBar
 import React from 'react';
 
 // 내장 SVG 아이콘 컴포넌트들
@@ -202,6 +202,32 @@ const Phone = ({ size = 24, className = '', ...props }) => (
   </svg>
 );
 
+const Share2 = ({ size = 24, className = '', ...props }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+    <circle cx="18" cy="5" r="3"/>
+    <circle cx="6" cy="12" r="3"/>
+    <circle cx="18" cy="19" r="3"/>
+    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+  </svg>
+);
+
+const Edit = ({ size = 24, className = '', ...props }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+  </svg>
+);
+
+const Trash2 = ({ size = 24, className = '', ...props }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} {...props}>
+    <polyline points="3,6 5,6 21,6"/>
+    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+    <line x1="10" y1="11" x2="10" y2="17"/>
+    <line x1="14" y1="11" x2="14" y2="17"/>
+  </svg>
+);
+
 // Button 컴포넌트 - 통일된 네이비/블루 색상 체계
 export const Button = ({ 
   children, 
@@ -230,8 +256,8 @@ export const Button = ({
     // 경고/주의 버튼 - 앰버
     warning: 'bg-amber-500 text-white hover:bg-amber-600 focus:bg-amber-600 active:bg-amber-700 shadow-sm hover:shadow-md focus:ring-amber-500',
     
-    // 위험/삭제 버튼 - 레드
-    danger: 'bg-red-600 text-white hover:bg-red-700 focus:bg-red-700 active:bg-red-800 shadow-sm hover:shadow-md focus:ring-red-500',
+    // 위험/삭제 버튼 - 레드 (덜 강조)
+    danger: 'bg-white text-red-600 border-2 border-red-600 hover:bg-red-50 focus:bg-red-50 active:bg-red-100 shadow-sm hover:shadow-md focus:ring-red-500',
     
     // 아웃라인 버튼 - 네이비 블루 테두리
     outline: 'border-2 border-blue-600 bg-white text-blue-600 hover:bg-blue-50 focus:bg-blue-50 active:bg-blue-100 focus:ring-blue-500',
@@ -454,16 +480,24 @@ export const Select = ({
   );
 };
 
-// Card 컴포넌트 - 개선된 디자인과 여백
+// Card 컴포넌트 - 개선된 디자인과 선택 로직
 export const Card = ({ 
   children, 
   className = '', 
   hover = false, 
   selected = false,
+  selectable = false,
+  onSelect,
+  showCheckbox = false,
+  checkboxClass = '',
   padding = 'default',
   variant = 'default',
+  onClick,
   ...props 
 }) => {
+  const [isLongPress, setIsLongPress] = React.useState(false);
+  const longPressTimer = React.useRef(null);
+  
   let cardClasses = 'bg-white rounded-2xl border transition-all duration-300';
   
   // 선택 상태별 스타일
@@ -490,11 +524,79 @@ export const Card = ({
   // 터치 디바이스에서의 활성 상태
   const touchClasses = 'active:scale-[0.98] active:shadow-sm';
   
+  // 길게 누르기 이벤트 핸들러
+  const handleTouchStart = () => {
+    if (selectable && onSelect) {
+      longPressTimer.current = setTimeout(() => {
+        setIsLongPress(true);
+        onSelect();
+      }, 500); // 500ms 길게 누르기
+    }
+  };
+  
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    
+    if (isLongPress) {
+      setIsLongPress(false);
+    } else if (onClick) {
+      onClick();
+    }
+  };
+  
+  const handleMouseDown = () => {
+    if (selectable && onSelect) {
+      longPressTimer.current = setTimeout(() => {
+        setIsLongPress(true);
+        onSelect();
+      }, 500);
+    }
+  };
+  
+  const handleMouseUp = () => {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+    
+    if (isLongPress) {
+      setIsLongPress(false);
+    } else if (onClick) {
+      onClick();
+    }
+  };
+  
+  const handleCheckboxChange = (e) => {
+    e.stopPropagation();
+    if (onSelect) {
+      onSelect();
+    }
+  };
+  
   return (
     <div 
-      className={`${cardClasses} ${paddingClasses[padding]} ${hover ? touchClasses : ''} ${className}`}
+      className={`relative ${cardClasses} ${paddingClasses[padding]} ${hover ? touchClasses : ''} ${className}`}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
       {...props}
     >
+      {/* 체크박스 (선택 모드일 때만 표시) */}
+      {showCheckbox && (
+        <div className="absolute top-3 left-3 z-10">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={handleCheckboxChange}
+            className="w-5 h-5 text-blue-600 bg-white border-2 border-gray-300 rounded focus:ring-blue-500 focus:ring-2"
+          />
+        </div>
+      )}
+      
       {children}
     </div>
   );
@@ -862,6 +964,48 @@ export const Divider = ({
   return <hr className={`border-gray-200 ${className}`} />;
 };
 
+// FloatingActionBar 컴포넌트 - 모바일 친화적 디자인
+export const FloatingActionBar = ({ 
+  actions = [], // [{ label, onClick, variant, disabled, show }]
+  onClear,
+  className = '' 
+}) => (
+  <div className={`fixed bottom-0 left-0 right-0 md:bottom-6 md:left-1/2 md:right-auto md:transform md:-translate-x-1/2 z-50 ${className}`}>
+    <div className="bg-white border-t md:border md:rounded-2xl md:shadow-2xl border-gray-200 p-4 md:px-6 md:py-4">
+      <div className="flex items-center justify-between md:justify-center md:gap-4 max-w-sm md:max-w-none mx-auto">
+        
+        {/* 닫기 버튼 */}
+        <button
+          onClick={onClear}
+          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors md:order-first"
+        >
+          <X size={20} />
+        </button>
+        
+        {/* 액션 버튼들 */}
+        <div className="flex gap-2">
+          {actions.map((action, index) => {
+            if (action.show === false) return null;
+            
+            return (
+              <Button
+                key={index}
+                size="sm"
+                variant={action.variant || "outline"}
+                onClick={action.onClick}
+                disabled={action.disabled}
+                className="min-w-[64px]"
+              >
+                {action.label}
+              </Button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  </div>
+);
+
 // 아이콘들을 쉽게 사용할 수 있도록 export
 export { 
   Settings as SettingsIcon,
@@ -884,7 +1028,10 @@ export {
   FileContract as ContractIcon,
   Briefcase as BriefcaseIcon,
   Bot as BotIcon,
-  Sparkles as SparklesIcon
+  Sparkles as SparklesIcon,
+  Share2,
+  Edit,
+  Trash2
 };
 
 // 유틸리티 함수들 - 개선된 포맷팅

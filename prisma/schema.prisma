@@ -1,4 +1,5 @@
-// schema.prisma - SaaS DB 스키마 (NextAuth 포함) - username 필드 제거
+// schema.prisma - 다국어 계약서 시스템 확장 (MediumText 적용)
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -241,7 +242,7 @@ model Contract {
   type      String   @default("manual")
   status    String   @default("pending")
   amount    Float?
-  content   String?  @db.Text
+  content   String?  @db.MediumText
   metadata  String?  @db.Text
   
   createdAt DateTime @default(now())
@@ -281,7 +282,7 @@ model Clause {
   contractId Int
   title      String?
   type       String
-  content    String  @db.Text
+  content    String  @db.MediumText
   essential  Boolean @default(false)
   order      Int     @default(0)
   
@@ -295,7 +296,7 @@ model Signature {
   signerType    String
   signerName    String
   signerEmail   String
-  signatureData String?  @db.Text
+  signatureData String?  @db.MediumText
   signatureType String?
   signedAt      DateTime @default(now())
   
@@ -324,7 +325,7 @@ model ContractChecklist {
   completed  Boolean  @default(false)
   completedAt DateTime?
   requiresSignature Boolean @default(false)
-  signature  String?  @db.Text
+  signature  String?  @db.MediumText
   signedAt   DateTime?
   createdAt  DateTime @default(now())
   
@@ -369,56 +370,73 @@ model PublicPage {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// ============ 템플릿 시스템 테이블들 ============
+// ============ 다국어 템플릿 시스템 ============
 
-// 원본 계약서 저장소
+// 원본 계약서 저장소 (다국어 확장)
 model SourceContract {
   id            Int      @id @default(autoincrement())
   filename      String   @unique
   title         String?
-  fullText      String   @db.Text
+  fullText      String   @db.MediumText
   metadata      String?  @db.Text
   clauseCount   Int      @default(0)
   uploadedBy    String
   status        String   @default("uploaded")
   processedAt   DateTime?
-  analysisResult String? @db.Text
+  analysisResult String? @db.MediumText
+  
+  // 🌍 다국어 필드 추가
+  countryCode   String   @default("kr")
+  language      String   @default("ko")
+  
   createdAt     DateTime @default(now())
   
   uploader User @relation("UploadedBy", fields: [uploadedBy], references: [id])
   candidates ClauseCandidate[]
+  
+  @@index([countryCode, language])
+  @@index([status, countryCode])
 }
 
-// ClauseCandidate 모델
+// 조항 후보 (다국어 확장)
 model ClauseCandidate {
   id               Int      @id @default(autoincrement())
   title            String
-  content          String   @db.Text
+  content          String   @db.MediumText
   contractCategory String
   clauseCategory   String?
   sourceContract   String
   sourceId         Int?
   confidence       Float    @default(0.5)
   tags             String?  @db.Text
-  variables        String?  @db.Text
+  variables        String?  @db.MediumText
   similarity       Float?
   needsReview      Boolean  @default(true)
   reviewedAt       DateTime?
   status           String   @default("pending")
+  
+  // 🌍 다국어 필드 추가
+  countryCode      String   @default("kr")
+  language         String   @default("ko")
+  
   createdAt        DateTime @default(now())
   
   source SourceContract? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  
+  @@index([countryCode, language])
+  @@index([status, countryCode])
+  @@index([clauseCategory, countryCode])
 }
 
-// 계약서 템플릿
+// 계약서 템플릿 (다국어 확장)
 model ContractTemplate {
   id           Int      @id @default(autoincrement())
   name         String
   description  String?  @db.Text
-  content      String   @db.Text
+  content      String   @db.MediumText
   category     String
-  variables    String?  @db.Text
-  clauses      String?  @db.Text
+  variables    String?  @db.MediumText
+  clauses      String?  @db.MediumText
   status       String   @default("active")
   userId       String
   
@@ -433,6 +451,12 @@ model ContractTemplate {
   lastUsed     DateTime?
   reviewedBy   String?
   isActive     Boolean  @default(true)
+  
+  // 🌍 다국어 필드 추가
+  countryCode  String   @default("kr")
+  language     String   @default("ko")
+  legalSystem  String   @default("civil_law")
+  
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   
@@ -443,9 +467,11 @@ model ContractTemplate {
   @@index([category, status])
   @@index([industry, complexity])
   @@index([popularity])
+  @@index([countryCode, language])
+  @@index([legalSystem, countryCode])
 }
 
-// 템플릿 매칭 로그
+// 템플릿 매칭 로그 (다국어 확장)
 model TemplateMatchLog {
   id            Int      @id @default(autoincrement())
   quoteId       Int?
@@ -454,24 +480,36 @@ model TemplateMatchLog {
   serviceType   String?
   amount        Float?
   complexity    String?
-  matchedTemplates String? @db.Text
+  matchedTemplates String? @db.MediumText
   selectedTemplate Int?
   satisfaction  Int?
+  
+  // 🌍 다국어 필드 추가
+  countryCode   String   @default("kr")
+  language      String   @default("ko")
+  
   createdAt     DateTime @default(now())
+  
+  @@index([countryCode, language])
 }
 
-// ============ 하이브리드 카테고리 시스템 ============
+// ============ 다국어 카테고리 시스템 ============
 
-// 조항 카테고리
+// 조항 카테고리 (다국어 확장)
 model ClauseCategory {
   id          Int      @id @default(autoincrement())
-  name        String   @unique
+  name        String
   level       Int      @default(1)
   parentId    Int?
   description String?  @db.Text
   isActive    Boolean  @default(true)
   isDefault   Boolean  @default(false)
   usageCount  Int      @default(0)
+  
+  // 🌍 다국어 필드 추가
+  countryCode String   @default("kr")
+  language    String   @default("ko")
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
@@ -481,9 +519,11 @@ model ClauseCategory {
   
   @@index([level, isActive])
   @@index([parentId])
+  @@index([countryCode, language])
+  @@unique([name, countryCode, language])
 }
 
-// 제안된 카테고리
+// 제안된 카테고리 (다국어 확장)
 model ProposedCategory {
   id             Int      @id @default(autoincrement())
   name           String
@@ -494,11 +534,104 @@ model ProposedCategory {
   confidence     Float    @default(0.7)
   status         String   @default("pending")
   adminNotes     String?  @db.Text
+  
+  // 🌍 다국어 필드 추가
+  countryCode    String   @default("kr")
+  language       String   @default("ko")
+  
   createdAt      DateTime @default(now())
   reviewedAt     DateTime?
   
   @@index([status])
   @@index([suggestedBy])
+  @@index([countryCode, language])
+}
+
+// ============ 🌍 다국어 시스템 신규 테이블 ============
+
+// 국가별 법적 프로파일
+model CountryLegalProfile {
+  id                    Int      @id @default(autoincrement())
+  countryCode           String   @unique
+  countryName           String
+  language              String
+  legalSystem           String
+  
+  // 분쟁 해결 선호도
+  preferredDispute      String   @default("court")
+  arbitrationPreference Boolean  @default(false)
+  
+  // 표준 조항 설정
+  governingLawRequired     Boolean @default(true)
+  confidentialityRequired  Boolean @default(true)
+  terminationNoticeRequired Boolean @default(true)
+  dataProtectionRequired   Boolean @default(false)
+  
+  // AI 모델 설정
+  mlModelPath           String?
+  promptTemplate        String?  @db.MediumText
+  riskWeights           String?  @db.MediumText // JSON
+  
+  // 메타데이터
+  isActive              Boolean  @default(true)
+  templateCount         Int      @default(0)
+  lastTrainingDate      DateTime?
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  // 관계
+  standardClauses       StandardClause[]
+  legalTerms           LegalTermDictionary[]
+  
+  @@index([countryCode])
+  @@index([language])
+  @@index([legalSystem])
+}
+
+// 국가별 표준 조항 라이브러리
+model StandardClause {
+  id                Int      @id @default(autoincrement())
+  countryCode       String
+  clauseType        String
+  title             String
+  content           String   @db.MediumText
+  
+  // 메타데이터
+  riskLevel         Int      @default(1)
+  isRequired        Boolean  @default(false)
+  industrySpecific  String?
+  
+  // 사용 통계
+  usageCount        Int      @default(0)
+  successRate       Float    @default(0.0)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  country           CountryLegalProfile @relation(fields: [countryCode], references: [countryCode])
+  
+  @@index([countryCode, clauseType])
+  @@index([riskLevel])
+  @@index([isRequired])
+}
+
+// 국가별 법적 용어 사전
+model LegalTermDictionary {
+  id          Int      @id @default(autoincrement())
+  countryCode String
+  term        String
+  definition  String?  @db.Text
+  riskLevel   Int      @default(1)
+  alternatives String? @db.MediumText // JSON array
+  
+  createdAt   DateTime @default(now())
+  
+  country     CountryLegalProfile @relation(fields: [countryCode], references: [countryCode])
+  
+  @@unique([countryCode, term])
+  @@index([countryCode])
+  @@index([riskLevel])
 }
 
 // ============ 서비스 공유 시스템 ============
@@ -554,4 +687,30 @@ model SharedServiceView {
   
   @@index([sharedServiceId])
   @@index([viewedAt])
+}
+
+// 국가별 조항 카테고리 매핑 테이블
+model CountryClauseCategory {
+  id           Int      @id @default(autoincrement())
+  countryCode  String   // kr, us, de, fr 등
+  categoryKey  String   // basic, payment, service, delivery 등 (시스템 내부용)
+  categoryName String   // "기본 정보", "Payment Terms" 등 (표시용)
+  description  String?  @db.Text
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  
+  // 사용 통계
+  usageCount   Int      @default(0)
+  
+  // 메타데이터
+  riskWeight   Float    @default(1.0)  // 해당 조항의 위험도 가중치
+  isRequired   Boolean  @default(false) // 필수 조항 여부
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  @@unique([countryCode, categoryKey])
+  @@index([countryCode])
+  @@index([categoryKey])
+  @@index([isActive])
 }

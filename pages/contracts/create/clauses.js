@@ -60,7 +60,7 @@ export default function ClausesPage() {
   
   // 계약서 길이 및 생성 방식
   const [contractLength, setContractLength] = useState('simple');
-  const [generationType, setGenerationType] = useState('template'); // 새로 추가
+  const [generationType, setGenerationType] = useState('template');
   const [isGenerated, setIsGenerated] = useState(false);
 
   useEffect(() => {
@@ -233,7 +233,7 @@ export default function ClausesPage() {
           selectedServices: services,
           contractLength,
           quoteId: parseInt(quoteId),
-          generation_type: generationType, // 새로 추가
+          generation_type: generationType,
           options: {
             saveToDatabase: false,
             templateType: 'standard',
@@ -477,7 +477,7 @@ export default function ClausesPage() {
           </div>
         )}
 
-        {/* 선택된 조항 목록 */}
+        {/* 선택된 조항 목록 - AI 검토 기능 포함 */}
         {isGenerated && (
           <ClauseSelector
             contractData={contractData}
@@ -486,7 +486,7 @@ export default function ClausesPage() {
             selectedClauses={selectedClauses}
             onClausesChange={handleClausesChange}
             onVariablesChange={handleVariablesChange}
-            hideAnalysis={true}
+            hideAnalysis={false} // AI 검토 기능 활성화
           />
         )}
 
@@ -572,22 +572,22 @@ function generateFallbackClauses(contractData, contractLength = 'simple') {
   const baseClauses = [
     {
       id: 'fallback_purpose',
-      title: '계약 목적',
-      content: `본 계약은 발주자가 수행자에게 ${serviceDescription}을 의뢰하고, 수행자가 이를 성실히 수행함을 목적으로 한다.`,
+      title: '계약의 목적',
+      content: `본 계약은 갑이 을에게 ${serviceDescription} 서비스를 의뢰하고, 을이 이를 수행함에 있어 필요한 제반사항을 정함을 목적으로 한다. 을은 갑의 요구사항에 따라 전문적이고 성실한 서비스를 제공한다.`,
       essential: true,
       order: 1
     },
     {
       id: 'fallback_payment',
-      title: '계약금액',
+      title: '대금청구 및 지급',
       content: generatePaymentClause(contractData),
       essential: true,
       order: 2
     },
     {
       id: 'fallback_completion',
-      title: '계약 완료',
-      content: `모든 업무가 완료되고 발주자의 승인을 받은 시점에 계약이 종료된다.`,
+      title: '용역의 완료',
+      content: `을이 계약에서 정한 모든 업무를 완료하고 갑의 최종 승인을 받은 때에 본 계약상의 용역이 완료된 것으로 본다. 갑은 용역 완료 확인 후 7일 이내에 승인 여부를 통지하여야 한다.`,
       essential: true,
       order: 3
     }
@@ -597,7 +597,7 @@ function generateFallbackClauses(contractData, contractLength = 'simple') {
     baseClauses.push(
       {
         id: 'fallback_detailed_scope',
-        title: '세부 업무 범위',
+        title: '용역 대상내역',
         content: services.length > 0 
           ? services.map((s, i) => `${i + 1}. ${s.serviceName}: ${s.serviceDescription || '세부 내용 협의'}`).join('\n')
           : '세부 업무 범위는 별도 협의에 따라 결정한다.',
@@ -606,10 +606,17 @@ function generateFallbackClauses(contractData, contractLength = 'simple') {
       },
       {
         id: 'fallback_warranty',
-        title: '하자보증',
-        content: `수행자는 납품 완료 후 30일간 하자보증 의무를 진다. 하자 발견 시 무상으로 수정한다.`,
+        title: '하자담보책임',
+        content: `을은 용역 완료 후 30일간 하자담보책임을 진다. 하자 발견 시 을은 무상으로 이를 수정하여야 하며, 하자로 인해 갑에게 손해가 발생한 경우 이를 배상한다.`,
         essential: false,
         order: 5
+      },
+      {
+        id: 'fallback_ip_rights',
+        title: '저작권 및 소유권',
+        content: `용역 결과물의 저작권은 갑에게 귀속한다. 단, 을은 포트폴리오 목적으로 결과물을 활용할 수 있으며, 을이 기존에 보유한 기술이나 노하우는 을의 소유로 한다.`,
+        essential: false,
+        order: 6
       }
     );
   } else if (contractLength === 'standard') {
@@ -617,9 +624,16 @@ function generateFallbackClauses(contractData, contractLength = 'simple') {
       {
         id: 'fallback_standard_warranty',
         title: '품질보증',
-        content: `수행자는 완성된 결과물의 품질을 보증하며, 하자 발견 시 수정한다.`,
+        content: `을은 완성된 결과물의 품질을 보증하며, 명백한 하자 발견 시 30일 이내 무상으로 수정한다. 단, 갑의 추가 요구사항이나 사양 변경은 별도 협의한다.`,
         essential: false,
         order: 4
+      },
+      {
+        id: 'fallback_termination',
+        title: '계약의 해지',
+        content: `양 당사자는 상대방이 계약상의 의무를 현저히 위반한 경우 7일의 최고기간을 정하여 이행을 최고하고, 그 기간 내에 이행하지 않을 때 계약을 해지할 수 있다.`,
+        essential: false,
+        order: 5
       }
     );
   }
@@ -632,24 +646,27 @@ function generatePaymentClause(contractData) {
   const paymentTerms = contractData.paymentTerms;
   
   if (!paymentTerms || !paymentTerms.schedule || paymentTerms.schedule.length === 0) {
-    return `계약 총액은 ${amount}원이며, 서비스 완료 후 지급한다.`;
+    return `총 용역대금은 ${amount}원으로 한다. 갑은 을의 용역 완료 및 검수 후 30일 이내에 대금을 지급한다.`;
   }
   
   const schedule = paymentTerms.schedule.sort((a, b) => a.order - b.order);
   
   if (schedule.length === 1) {
-    return `계약 총액은 ${amount}원이며, 서비스 완료 후 지급한다.`;
+    return `총 용역대금은 ${amount}원으로 한다. 갑은 을의 용역 완료 및 검수 후 30일 이내에 대금을 지급한다.`;
   }
   
-  const paymentSteps = schedule.map((step, index) => {
-    if (index === 0) {
-      return `계약금 ${step.percentage}%`;
-    } else if (index === schedule.length - 1) {
-      return `잔금 ${step.percentage}%`;
-    } else {
-      return `중도금 ${step.percentage}%`;
-    }
-  }).join(', ');
+  let paymentDescription = `총 용역대금은 ${amount}원으로 하며, `;
   
-  return `계약 총액은 ${amount}원이며, ${paymentSteps}로 분할 지급한다.`;
+  schedule.forEach((step, index) => {
+    const stepAmount = Math.round((contractData.amount || 0) * step.percentage / 100);
+    if (index === 0) {
+      paymentDescription += `계약금 ${stepAmount.toLocaleString()}원(${step.percentage}%)은 계약 체결과 동시에, `;
+    } else if (index === schedule.length - 1) {
+      paymentDescription += `잔금 ${stepAmount.toLocaleString()}원(${step.percentage}%)은 용역 완료 후 지급한다.`;
+    } else {
+      paymentDescription += `중도금 ${stepAmount.toLocaleString()}원(${step.percentage}%)은 용역 진행 중 지급하고, `;
+    }
+  });
+  
+  return paymentDescription;
 }

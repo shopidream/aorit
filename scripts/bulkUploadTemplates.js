@@ -1,35 +1,82 @@
-// scripts/bulkUploadTemplates.js - AI 분류 기반 대량 템플릿 자동 업로드
+// scripts/bulkUploadTemplates.js - 최종 최적화된 다국가 계약서 자동 분류 업로드 시스템
+require('dotenv').config();
+
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
 
-// 언어 정보
-const LANGUAGES = {
-  kr: { name: '한국어', flag: '🇰🇷' },
-  en: { name: 'English', flag: '🇺🇸' },
-  es: { name: 'Español', flag: '🇪🇸' },
-  de: { name: 'Deutsch', flag: '🇩🇪' }
+// 30개국 완전 지원
+const COUNTRIES = {
+  // 아시아-태평양
+  kr: { name: 'South Korea', flag: '🇰🇷', legalSystem: 'civil_law', language: 'ko' },
+  jp: { name: 'Japan', flag: '🇯🇵', legalSystem: 'civil_law', language: 'ja' },
+  tw: { name: 'Taiwan', flag: '🇹🇼', legalSystem: 'civil_law', language: 'zh-TW' },
+  sg: { name: 'Singapore', flag: '🇸🇬', legalSystem: 'common_law', language: 'en' },
+  hk: { name: 'Hong Kong', flag: '🇭🇰', legalSystem: 'common_law', language: 'en' },
+  my: { name: 'Malaysia', flag: '🇲🇾', legalSystem: 'mixed_law', language: 'en' },
+  th: { name: 'Thailand', flag: '🇹🇭', legalSystem: 'civil_law', language: 'th' },
+  ph: { name: 'Philippines', flag: '🇵🇭', legalSystem: 'common_law', language: 'en' },
+  in: { name: 'India', flag: '🇮🇳', legalSystem: 'common_law', language: 'en' },
+  au: { name: 'Australia', flag: '🇦🇺', legalSystem: 'common_law', language: 'en' },
+  nz: { name: 'New Zealand', flag: '🇳🇿', legalSystem: 'common_law', language: 'en' },
+
+  // 북미
+  us: { name: 'United States', flag: '🇺🇸', legalSystem: 'common_law', language: 'en' },
+  ca: { name: 'Canada', flag: '🇨🇦', legalSystem: 'common_law', language: 'en' },
+  mx: { name: 'Mexico', flag: '🇲🇽', legalSystem: 'civil_law', language: 'es' },
+
+  // 유럽
+  uk: { name: 'United Kingdom', flag: '🇬🇧', legalSystem: 'common_law', language: 'en' },
+  ie: { name: 'Ireland', flag: '🇮🇪', legalSystem: 'common_law', language: 'en' },
+  de: { name: 'Germany', flag: '🇩🇪', legalSystem: 'civil_law', language: 'de' },
+  fr: { name: 'France', flag: '🇫🇷', legalSystem: 'civil_law', language: 'fr' },
+  es: { name: 'Spain', flag: '🇪🇸', legalSystem: 'civil_law', language: 'es' },
+  it: { name: 'Italy', flag: '🇮🇹', legalSystem: 'civil_law', language: 'it' },
+  nl: { name: 'Netherlands', flag: '🇳🇱', legalSystem: 'civil_law', language: 'nl' },
+  be: { name: 'Belgium', flag: '🇧🇪', legalSystem: 'civil_law', language: 'nl' },
+  ch: { name: 'Switzerland', flag: '🇨🇭', legalSystem: 'civil_law', language: 'de' },
+  se: { name: 'Sweden', flag: '🇸🇪', legalSystem: 'civil_law', language: 'sv' },
+  no: { name: 'Norway', flag: '🇳🇴', legalSystem: 'civil_law', language: 'no' },
+  dk: { name: 'Denmark', flag: '🇩🇰', legalSystem: 'civil_law', language: 'da' },
+  fi: { name: 'Finland', flag: '🇫🇮', legalSystem: 'civil_law', language: 'fi' },
+  pl: { name: 'Poland', flag: '🇵🇱', legalSystem: 'civil_law', language: 'pl' },
+  ru: { name: 'Russia', flag: '🇷🇺', legalSystem: 'civil_law', language: 'ru' },
+
+  // 중동
+  ae: { name: 'UAE', flag: '🇦🇪', legalSystem: 'mixed_law', language: 'en' },
+
+  // 남미
+  br: { name: 'Brazil', flag: '🇧🇷', legalSystem: 'civil_law', language: 'pt' },
+
+  // 아프리카
+  za: { name: 'South Africa', flag: '🇿🇦', legalSystem: 'mixed_law', language: 'en' }
 };
+
+// 계약서 카테고리 (8개 - 모든 국가 공통, 원본 코드 유지)
+const TEMPLATE_CATEGORIES = [
+  '용역/프로젝트', '거래/구매', '제조/공급', '근로/고용', 
+  '파트너십/제휴', '투자/자금', '비밀/보안', '기타/일반'
+];
 
 // 설정
 const CONFIG = {
   baseUrl: 'http://localhost:3100',
   templatesBaseDir: './templates',
-  delayBetweenUploads: 3000, // 3초 딜레이 (AI 분석 시간 고려)
-  maxRetries: 3,
-  skipExisting: true // 기존 업로드된 템플릿 제외
+  processedDir: './templates/processed',
+  delayBetweenUploads: 2000,
+  maxRetries: 1,
+  skipExisting: true
 };
 
 /**
  * 메인 실행 함수
  */
 async function main() {
-  console.log('🚀 AI 기반 다국어 템플릿 대량 업로드 시작...');
-  console.log(`📁 템플릿 기본 폴더: ${CONFIG.templatesBaseDir}`);
-  console.log(`🎯 서버 주소: ${CONFIG.baseUrl}`);
+  console.log('🌍 최적화된 다국가 계약서 자동 분류 시스템 시작...');
+  console.log(`📁 기본 폴더: ${CONFIG.templatesBaseDir}`);
+  console.log(`🎯 서버: ${CONFIG.baseUrl}`);
   
   try {
-    // 명령행 인수 파싱
     const args = parseArguments();
     
     if (!args.token) {
@@ -37,207 +84,271 @@ async function main() {
       process.exit(1);
     }
 
-    // API 키 확인
     if (!process.env.OPENAI_API_KEY) {
-      console.error('❌ OPENAI_API_KEY 환경변수가 설정되지 않았습니다.');
+      console.error('❌ OPENAI_API_KEY 환경변수가 필요합니다.');
       process.exit(1);
     }
     
-    // 언어 선택
-    const selectedLang = args.language || await selectLanguage();
-    const contractsDir = path.join(CONFIG.templatesBaseDir, `contract_templates_${selectedLang}`);
+    // processed 폴더 생성
+    if (!fs.existsSync(CONFIG.processedDir)) {
+      fs.mkdirSync(CONFIG.processedDir, { recursive: true });
+    }
     
-    // 템플릿 폴더 확인
-    if (!fs.existsSync(contractsDir)) {
-      console.error(`❌ 템플릿 폴더를 찾을 수 없습니다: ${contractsDir}`);
-      console.log(`\n📝 폴더 생성 방법:`);
-      console.log(`mkdir -p ${contractsDir}`);
+    // 전체 폴더 스캔
+    const templateFolders = scanAllTemplateFolders();
+    
+    if (templateFolders.length === 0) {
+      console.error('❌ contract_templates_* 폴더가 없습니다.');
+      console.log('📝 예시: mkdir -p ./templates/contract_templates_kr');
       process.exit(1);
     }
     
-    const langInfo = LANGUAGES[selectedLang];
+    console.log(`\n📂 발견된 폴더: ${templateFolders.length}개`);
+    templateFolders.forEach(folder => {
+      const info = COUNTRIES[folder.countryCode] || { name: 'Unknown', flag: '❓' };
+      console.log(`   📁 ${folder.folderName} → ${info.flag} ${info.name}`);
+    });
     
-    console.log(`\n🌍 선택된 언어: ${langInfo.flag} ${langInfo.name}`);
-    console.log(`📂 템플릿 폴더: ${contractsDir}`);
+    // 전체 통계
+    let totalStats = {
+      files: 0, success: 0, fails: 0, skipped: 0, 
+      mismatches: 0, cost: 0, clauses: 0
+    };
     
-    // 기존 업로드된 템플릿 목록 가져오기
-    let existingTemplates = [];
-    if (CONFIG.skipExisting) {
-      console.log(`\n🔍 기존 업로드된 템플릿 확인 중...`);
-      existingTemplates = await getExistingTemplateNames(args.token);
-      console.log(`📋 기존 템플릿: ${existingTemplates.length}개`);
-    }
-    
-    // txt 파일 목록 가져오기
-    const allFiles = fs.readdirSync(contractsDir)
-      .filter(file => file.endsWith('.txt'))
-      .sort();
-    
-    console.log(`📄 발견된 템플릿 파일: ${allFiles.length}개`);
-    
-    // 중복 제외 필터링
-    let filteredFiles = allFiles;
-    if (CONFIG.skipExisting && existingTemplates.length > 0) {
-      filteredFiles = allFiles.filter(file => {
-        const nameWithoutExt = file.replace('.txt', '');
-        const isExisting = existingTemplates.some(existing => 
-          existing === nameWithoutExt || existing.startsWith(nameWithoutExt)
-        );
-        return !isExisting;
-      });
-      
-      console.log(`🆕 신규 파일: ${filteredFiles.length}개`);
-      console.log(`⏭️ 제외된 파일: ${allFiles.length - filteredFiles.length}개 (이미 업로드됨)`);
-    }
-    
-    if (filteredFiles.length === 0) {
-      console.log(`\n✅ 모든 파일이 이미 업로드되었습니다!`);
-      console.log(`💡 새 템플릿 파일을 ${contractsDir}에 추가하세요.`);
-      return;
-    }
-    
-    console.log(`\n✅ 업로드 대상 파일: ${filteredFiles.length}개`);
-    console.log(`💰 예상 AI 분류 비용: 약 $${calculateAICost(filteredFiles.length).toFixed(3)}`);
-    console.log(`⏱️ 예상 소요시간: ${Math.ceil(filteredFiles.length * CONFIG.delayBetweenUploads / 1000 / 60)}분`);
-    console.log('');
-    
-    // 확인 요청 (배치 모드가 아닌 경우)
+    // 배치 모드 확인
     if (!args.batch) {
-      const readline = require('readline');
-      const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout
-      });
+      const estimatedFiles = templateFolders.reduce((sum, folder) => {
+        const files = fs.readdirSync(folder.folderPath).filter(f => f.endsWith('.txt'));
+        return sum + files.length;
+      }, 0);
       
-      const answer = await new Promise(resolve => {
-        rl.question('계속 진행하시겠습니까? (y/N): ', resolve);
-      });
+      console.log(`\n📊 예상 파일: ${estimatedFiles}개`);
+      console.log(`💰 예상 AI 비용: ~$${calculateAICost(estimatedFiles).toFixed(3)}`);
+      console.log(`⏱️ 예상 시간: ~${Math.ceil(estimatedFiles * CONFIG.delayBetweenUploads / 60000)}분`);
       
-      rl.close();
-      
-      if (answer.toLowerCase() !== 'y' && answer.toLowerCase() !== 'yes') {
-        console.log('업로드가 취소되었습니다.');
+      if (!await confirmProceed()) {
+        console.log('취소되었습니다.');
         process.exit(0);
       }
     }
     
-    // 진행률 추적
-    let successCount = 0;
-    let failCount = 0;
-    let totalClauses = 0;
-    let totalAICost = 0;
-    
-    // 순차 업로드
-    for (let i = 0; i < filteredFiles.length; i++) {
-      const file = filteredFiles[i];
-      const nameWithoutExt = file.replace('.txt', '');
-      const filePath = path.join(contractsDir, file);
+    // 각 폴더 처리
+    for (let i = 0; i < templateFolders.length; i++) {
+      const folder = templateFolders[i];
+      const info = COUNTRIES[folder.countryCode] || { name: 'Unknown', flag: '❓' };
       
-      console.log(`\n📋 [${i + 1}/${filteredFiles.length}] ${nameWithoutExt}`);
-      console.log(`   🌍 언어: ${langInfo.flag} ${langInfo.name}`);
+      console.log(`\n🌍 [${i + 1}/${templateFolders.length}] ${info.flag} ${info.name} 처리중...`);
       
-      try {
-        // 파일 읽기
-        const content = fs.readFileSync(filePath, 'utf8');
-        const fileSize = fs.statSync(filePath).size;
-        
-        console.log(`   📏 파일 크기: ${formatBytes(fileSize)}`);
-        console.log(`   📝 내용 길이: ${content.length.toLocaleString()}자`);
-        
-        // AI로 카테고리 분류
-        console.log(`   🤖 AI 카테고리 분류 중...`);
-        const categoryResult = await classifyTemplateWithAI(nameWithoutExt, selectedLang);
-        
-        console.log(`   📂 AI 분류 결과: ${categoryResult.category} (신뢰도: ${Math.round(categoryResult.confidence * 100)}%)`);
-        console.log(`   💡 분류 이유: ${categoryResult.reason}`);
-        console.log(`   💰 분류 비용: $${categoryResult.cost.toFixed(6)}`);
-        
-        totalAICost += categoryResult.cost;
-        
-        // 신뢰도가 낮으면 경고
-        if (categoryResult.confidence < 0.8) {
-          console.log(`   ⚠️ 낮은 신뢰도 - 검토 권장`);
-        }
-        
-        // 업로드 실행
-        const result = await uploadTemplate({
-          name: `${nameWithoutExt} (${langInfo.name})`,
-          category: categoryResult.category,
-          content: content,
-          language: selectedLang,
-          classification: categoryResult,
-          token: args.token
-        });
-        
-        if (result.success) {
-          successCount++;
-          totalClauses += result.extractedClauses || 0;
-          
-          console.log(`   ✅ 업로드 성공`);
-          console.log(`   🔍 추출된 조항: ${result.extractedClauses || 0}개`);
-          
-          if (result.analysis) {
-            console.log(`   📊 조항 분석 완료: ${result.analysis.clauseCount}개 조항 분석됨`);
-          }
-        } else {
-          failCount++;
-          console.log(`   ❌ 업로드 실패: ${result.error}`);
-        }
-        
-      } catch (error) {
-        failCount++;
-        console.log(`   ❌ 파일 처리 오류: ${error.message}`);
-      }
+      const result = await processCountryFolder(folder, args.token);
       
-      // 진행률 표시
-      const progress = Math.round(((i + 1) / filteredFiles.length) * 100);
-      console.log(`   📈 진행률: ${progress}% (성공: ${successCount}, 실패: ${failCount})`);
+      // 통계 집계
+      Object.keys(totalStats).forEach(key => {
+        totalStats[key] += (result[key] || 0);
+      });
       
-      // 다음 파일 전 대기 (마지막 파일 제외)
-      if (i < filteredFiles.length - 1) {
-        console.log(`   ⏳ ${CONFIG.delayBetweenUploads / 1000}초 대기 중... (AI 분석 시간)`);
-        await sleep(CONFIG.delayBetweenUploads);
+      console.log(`✅ ${info.name} 완료: 성공 ${result.success}, 실패 ${result.fails}, 스킵 ${result.skipped}`);
+      
+      if (result.mismatches > 0) {
+        console.log(`⚠️ 국가 불일치: ${result.mismatches}개`);
       }
     }
     
     // 최종 결과
-    console.log('\n🎉 대량 업로드 완료!');
-    console.log('==========================================');
-    console.log(`🌍 언어: ${langInfo.flag} ${langInfo.name}`);
-    console.log(`📊 총 파일: ${filteredFiles.length}개`);
-    console.log(`✅ 성공: ${successCount}개`);
-    console.log(`❌ 실패: ${failCount}개`);
-    console.log(`🏷️ 총 추출된 조항: ${totalClauses.toLocaleString()}개`);
-    console.log(`💰 총 AI 분류 비용: $${totalAICost.toFixed(6)}`);
-    console.log(`📈 성공률: ${Math.round((successCount / filteredFiles.length) * 100)}%`);
-    
-    if (totalClauses > 0) {
-      console.log('');
-      console.log('🔍 조항 검토 안내:');
-      console.log('1. 브라우저에서 http://localhost:3100/admin/clauses 접속');
-      console.log('2. 검토 대기 조항들을 확인하고 승인/거부 처리');
-      console.log(`3. 예상 검토 대기 조항: 약 ${Math.round(totalClauses * 0.3)}개 (신뢰도 85% 미만)`);
-    }
-    
-    if (failCount > 0) {
-      console.log('\n⚠️ 실패한 파일들을 다시 확인해보세요.');
-    }
+    showFinalResults(totalStats);
     
   } catch (error) {
     console.error('❌ 실행 오류:', error);
-    throw error;
+    process.exit(1);
   }
 }
 
 /**
- * AI로 템플릿 카테고리 분류
+ * 전체 폴더 스캔
  */
-async function classifyTemplateWithAI(fileName, language) {
-  const prompt = createCategoryPrompt(fileName, language);
+function scanAllTemplateFolders() {
+  if (!fs.existsSync(CONFIG.templatesBaseDir)) {
+    return [];
+  }
+  
+  return fs.readdirSync(CONFIG.templatesBaseDir, { withFileTypes: true })
+    .filter(dirent => dirent.isDirectory() && dirent.name.startsWith('contract_templates_'))
+    .map(dirent => ({
+      folderName: dirent.name,
+      countryCode: dirent.name.replace('contract_templates_', ''),
+      folderPath: path.join(CONFIG.templatesBaseDir, dirent.name)
+    }));
+}
+
+/**
+ * 국가 폴더 처리 (원본 로직 유지 + 최적화)
+ */
+async function processCountryFolder(folder, token) {
+  const { countryCode, folderPath } = folder;
+  const countryInfo = COUNTRIES[countryCode] || { 
+    name: 'Unknown', flag: '❓', legalSystem: 'unknown', language: 'en' 
+  };
+  
+  // 1. 🔍 기존 템플릿 조회 (중복 확인용 - AI 없음)
+  console.log(`   🔍 기존 ${countryCode.toUpperCase()} 템플릿 확인중...`);
+  const existingTemplates = await getExistingTemplateNames(token, countryCode);
+  console.log(`   📋 기존: ${existingTemplates.length}개`);
+  
+  // 2. 📄 파일 목록 조회
+  const allFiles = fs.readdirSync(folderPath)
+    .filter(file => file.endsWith('.txt'))
+    .sort();
+  
+  console.log(`   📄 전체 파일: ${allFiles.length}개`);
+  
+  // 3. 🚀 중복 사전 제거 (AI 실행 전에 완전 배제)
+  let newFiles = [];
+  let skipped = 0;
+  
+  if (CONFIG.skipExisting && existingTemplates.length > 0) {
+    console.log(`   🔍 중복 파일 사전 제거중 (AI 미실행)...`);
+    
+    for (const file of allFiles) {
+      const nameWithoutExt = file.replace('.txt', '');
+      if (existingTemplates.includes(nameWithoutExt)) {
+        skipped++;
+        console.log(`      ⏭️ 스킵: ${nameWithoutExt}`);
+      } else {
+        newFiles.push(file);
+      }
+    }
+    
+    console.log(`   🆕 신규: ${newFiles.length}개, ⏭️ 스킵: ${skipped}개 (AI 비용 절약)`);
+  } else {
+    newFiles = [...allFiles];
+  }
+  
+  if (newFiles.length === 0) {
+    console.log(`   ✅ 모든 파일이 이미 업로드됨!`);
+    return { 
+      files: allFiles.length, success: 0, fails: 0, skipped: allFiles.length, 
+      mismatches: 0, cost: 0, clauses: 0 
+    };
+  }
+  
+  // 4. 🎯 국가별 조항 카테고리 DB 조회
+  console.log(`   📋 ${countryCode.toUpperCase()} 조항 카테고리 조회중...`);
+  const clauseCategories = await getCountryClauseCategories(countryCode);
+  console.log(`   📂 조항 카테고리: ${clauseCategories.length}개`);
+  
+  // 5. 신규 파일만 처리 (최적화된 AI 분석)
+  let success = 0, fails = 0, mismatches = 0, totalCost = 0, totalClauses = 0;
+  
+  for (let i = 0; i < newFiles.length; i++) {
+    const file = newFiles[i];
+    const nameWithoutExt = file.replace('.txt', '');
+    const filePath = path.join(folderPath, file);
+    
+    console.log(`\n   📋 [${i + 1}/${newFiles.length}] ${nameWithoutExt}`);
+    
+    try {
+      const content = fs.readFileSync(filePath, 'utf8');
+      console.log(`      📏 크기: ${formatBytes(fs.statSync(filePath).size)}`);
+      
+      // 6. 🚀 최적화된 AI 분석 (국가 판별 + 계약서 카테고리만)
+      console.log(`      🤖 AI 국가판별 + 계약분류중... (${countryCode.toUpperCase()})`);
+      const aiResult = await optimizedAIAnalysis(nameWithoutExt, content.substring(0, 500), countryCode);
+      
+      totalCost += aiResult.cost;
+      
+      // 국가 불일치 체크 (원본 로직 유지)
+      if (aiResult.detectedCountry !== countryCode) {
+        mismatches++;
+        console.log(`      ⚠️ 국가 불일치: 폴더=${countryCode} vs AI=${aiResult.detectedCountry} (${Math.round(aiResult.countryConfidence * 100)}%)`);
+        console.log(`      📝 폴더 기준으로 업로드 진행 (원본 로직)`);
+      } else {
+        console.log(`      ✅ 국가 일치: ${countryCode} (${Math.round(aiResult.countryConfidence * 100)}%)`);
+      }
+      
+      console.log(`      📂 계약 카테고리: ${aiResult.templateCategory} (${Math.round(aiResult.categoryConfidence * 100)}%)`);
+      console.log(`      💰 AI 비용: ${aiResult.cost.toFixed(6)}`);
+      
+      // 낮은 신뢰도 체크 (원본 로직)
+      if (aiResult.categoryConfidence < 0.8) {
+        console.log(`      ⚠️ 낮은 신뢰도 - 검토 권장`);
+      }
+      
+      // 7. 템플릿 업로드 (조항 분석은 서버에서 AI로 처리)
+      const result = await uploadTemplate({
+        name: `${nameWithoutExt} (${countryInfo.name})`,
+        category: aiResult.templateCategory,
+        content: content,
+        countryCode: countryCode, // 폴더 기준 우선 사용
+        language: countryInfo.language,
+        legalSystem: countryInfo.legalSystem,
+        aiVerification: aiResult,
+        clauseCategories: clauseCategories, // DB에서 조회한 조항 카테고리
+        token: token
+      });
+      
+      if (result.success) {
+        success++;
+        totalClauses += (result.extractedClauses || 0);
+        console.log(`      ✅ 업로드 성공`);
+        console.log(`      🔍 추출된 조항: ${result.extractedClauses || 0}개`);
+        
+        // 조항 분석 결과 표시 (원본 로직 완전 유지)
+        if (result.analysis) {
+          console.log(`      📊 조항 분석 완료: ${result.analysis.clauseCount}개 조항 분석됨`);
+          if (result.analysis.countryRisk) {
+            console.log(`      ⚠️ 국가별 위험도: ${result.analysis.countryRisk}/10`);
+          }
+          
+          // 원본에는 없었지만 80% 기준 표시 (서버에서 처리된 결과)
+          if (result.analysis.successRate !== undefined) {
+            const successRate = Math.round(result.analysis.successRate * 100);
+            if (successRate >= 80) {
+              console.log(`      🎯 조항 분류 성공률: ${successRate}% (≥80%)`);
+            } else {
+              console.log(`      ⚠️ 조항 분류 성공률: ${successRate}% (<80% - 검토 필요)`);
+            }
+          }
+        }
+        
+        // 8. 완료된 파일 이동
+        await moveToProcessed(filePath, countryCode, file);
+        
+      } else {
+        fails++;
+        console.log(`      ❌ 업로드 실패: ${result.error}`);
+      }
+      
+    } catch (error) {
+      fails++;
+      console.log(`      ❌ 파일 오류: ${error.message}`);
+    }
+    
+    console.log(`      📈 진행률: ${Math.round(((i + 1) / newFiles.length) * 100)}%`);
+    
+    // 딜레이
+    if (i < newFiles.length - 1) {
+      console.log(`      ⏳ ${CONFIG.delayBetweenUploads / 1000}초 대기중...`);
+      await sleep(CONFIG.delayBetweenUploads);
+    }
+  }
+  
+  return {
+    files: allFiles.length,
+    success,
+    fails,
+    skipped, // 사전에 제거된 중복 파일 수
+    mismatches,
+    cost: totalCost,
+    clauses: totalClauses
+  };
+}
+
+/**
+ * 🎯 최적화된 AI 분석 (국가 판별 + 계약 카테고리만)
+ */
+async function optimizedAIAnalysis(fileName, contentPreview, expectedCountry) {
+  const prompt = createOptimizedPrompt(fileName, contentPreview, expectedCountry);
   
   try {
-    console.log(`     🔄 GPT-4o-mini로 분류 중...`);
-    
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -246,11 +357,8 @@ async function classifyTemplateWithAI(fileName, language) {
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        messages: [{ 
-          role: 'user', 
-          content: prompt 
-        }],
-        max_tokens: 200,
+        messages: [{ role: 'user', content: prompt }],
+        max_tokens: 120, // 최적화: 더 짧은 응답
         temperature: 0.1
       })
     });
@@ -262,201 +370,204 @@ async function classifyTemplateWithAI(fileName, language) {
     const data = await response.json();
     const content = data.choices[0].message.content;
     
-    // 토큰 사용량 및 비용 계산
-    const inputTokens = data.usage.prompt_tokens;
-    const outputTokens = data.usage.completion_tokens;
-    const cost = (inputTokens * 0.25 / 1000000) + (outputTokens * 2.00 / 1000000);
+    const cost = (data.usage.prompt_tokens * 0.25 + data.usage.completion_tokens * 2.00) / 1000000;
     
-    // JSON 파싱
-    let parsed;
     try {
-      const cleanContent = content.replace(/```json|```/g, '').trim();
-      parsed = JSON.parse(cleanContent);
+      const cleaned = content.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(cleaned);
+      
+      return {
+        detectedCountry: parsed.country || expectedCountry,
+        countryConfidence: parsed.countryConfidence || 0.8,
+        templateCategory: parsed.templateCategory || '기타/일반',
+        categoryConfidence: parsed.categoryConfidence || 0.8,
+        cost: cost
+      };
+      
     } catch (parseError) {
-      throw new Error(`JSON 파싱 실패: ${parseError.message}`);
+      console.warn(`      ⚠️ JSON 파싱 실패, 폴백 적용`);
+      return fallbackAnalysis(fileName, expectedCountry);
     }
     
-    return {
-      category: parsed.category,
-      confidence: parsed.confidence || 0.5,
-      reason: parsed.reason || '',
-      inputTokens: inputTokens,
-      outputTokens: outputTokens,
-      cost: cost
-    };
-    
   } catch (error) {
-    console.error(`     ❌ AI 분류 오류: ${error.message}`);
-    
-    // 폴백: 키워드 기반 분류
-    return fallbackCategorization(fileName);
+    console.warn(`      ⚠️ AI 분석 실패: ${error.message}`);
+    return fallbackAnalysis(fileName, expectedCountry);
   }
 }
 
 /**
- * 언어별 카테고리 분류 프롬프트 생성
+ * 최적화된 프롬프트 생성 (국가 판별 + 계약 카테고리만)
  */
-function createCategoryPrompt(fileName, language) {
-  if (language === 'kr') {
-    return `다음 한국어 계약서 파일명을 분석하여 가장 적절한 카테고리를 선택하세요.
-
-사용 가능한 카테고리 (정확히 이 중 하나만 선택)와 정의:
-- 용역/프로젝트: 특정 업무, 서비스, 프로젝트 수행을 위한 계약 (예: 개발용역, 공연예술용역)
-- 거래/구매: 제품, 물품, 재료, 콘텐츠 등의 매매 및 구매 관련 계약 (예: 물품구매계약서, 오디오북 유통 계약서)
-- 제조/공급: 제품, 부품, 장비 등의 제작, 제조, 공급과 관련된 계약 (예: 건설공사 도급계약, 금형제작 계약)
-- 근로/고용: 고용, 근로, 인력 제공 관련 계약 (예: 표준근로계약서, 공연예술출연계약서)
-- 파트너십/제휴: 공동사업, 협력, 대리점, 프랜차이즈 등의 제휴 관련 계약
-- 투자/자금: 자금조달, 투자, 금융 거래 관련 계약
-- 비밀/보안: 비밀유지, 개인정보, 보안 관련 계약
-- 기타/일반: 위의 어느 범주에도 속하지 않는 일반 계약서 (예: 각종 확인서, 각서)
-
-계약서 파일명: ${fileName}
-
-다음 JSON 형식으로만 응답하세요:
-{
-  "category": "선택된 카테고리",
-  "confidence": 0.95,
-  "reason": "분류 이유 (한 문장)"
-}`;
-  } else if (language === 'en') {
-    return `Analyze the following English contract filename and select the most appropriate category.
-
-Available categories (select exactly one):
-- Service/Project: Contracts for specific services, work, or project execution
-- Trade/Purchase: Contracts for buying/selling products, materials, or content
-- Manufacturing/Supply: Contracts for production, manufacturing, or supply
-- Employment/Labor: Employment, labor, or workforce contracts
-- Partnership/Alliance: Joint ventures, partnerships, franchises, or alliances
-- Investment/Finance: Investment, funding, or financial contracts
-- Confidentiality/Security: Confidentiality, privacy, or security contracts
-- General/Others: General contracts not fitting above categories
-
-Contract filename: ${fileName}
-
-Respond only in this JSON format:
-{
-  "category": "selected category",
-  "confidence": 0.95,
-  "reason": "classification reason (one sentence)"
-}`;
-  }
+function createOptimizedPrompt(fileName, contentPreview, expectedCountry) {
+  const countryInfo = COUNTRIES[expectedCountry] || { name: 'Unknown' };
+  const allCountries = Object.keys(COUNTRIES).join('/');
   
-  // 기타 언어는 영어로 기본 처리
-  return createCategoryPrompt(fileName, 'en');
+  return `계약서 전문가로서 다음 2가지만 빠르게 분석하세요:
+
+파일명: ${fileName}
+예상 국가: ${expectedCountry} (${countryInfo.name})
+내용: ${contentPreview}
+
+다음 JSON만 응답:
+{
+  "country": "국가코드",
+  "countryConfidence": 0.95,
+  "templateCategory": "계약 카테고리",
+  "categoryConfidence": 0.90
+}
+
+국가코드: ${allCountries}
+계약 카테고리: ${TEMPLATE_CATEGORIES.join(', ')}`;
 }
 
 /**
- * 폴백 카테고리 분류 (키워드 기반)
+ * 폴백 분석 (AI 실패시)
  */
-function fallbackCategorization(fileName) {
+function fallbackAnalysis(fileName, countryCode) {
   const keywords = {
-    '용역/프로젝트': ['용역', '개발', '제작', '컨설팅', '디자인', '설계', '감리'],
-    '거래/구매': ['매매', '구매', '임대', '렌탈', '공급', '유통'],
-    '제조/공급': ['제조', '생산', '하도급', '납품', '건설', '공사'],
-    '근로/고용': ['근로', '고용', '출연', '광고', '위촉'],
-    '파트너십/제휴': ['대리점', '프랜차이즈', '동업', '제휴', '협약'],
-    '투자/자금': ['투자', '대출', '자금', '대차'],
-    '비밀/보안': ['비밀', '보안', '개인정보'],
-    '기타/일반': ['각서', '확인서', '영수증']
+    '용역/프로젝트': ['용역', '개발', 'service', 'project', 'consulting'],
+    '거래/구매': ['매매', '구매', 'purchase', 'sale', 'buy'],
+    '제조/공급': ['제조', '생산', 'manufacturing', 'supply'],
+    '근로/고용': ['근로', '고용', 'employment', 'work'],
+    '파트너십/제휴': ['제휴', 'partnership', 'alliance'],
+    '투자/자금': ['투자', '대출', 'investment', 'loan'],
+    '비밀/보안': ['비밀', 'confidential', 'nda'],
+    '기타/일반': ['agreement', 'general', '계약']
   };
 
-  for (const [category, words] of Object.entries(keywords)) {
-    if (words.some(word => fileName.includes(word))) {
-      return {
-        category,
-        confidence: 0.7,
-        reason: `파일명 키워드 매칭: ${words.find(w => fileName.includes(w))}`,
-        inputTokens: 0,
-        outputTokens: 0,
-        cost: 0
-      };
+  let category = '기타/일반';
+  for (const [cat, words] of Object.entries(keywords)) {
+    if (words.some(word => fileName.toLowerCase().includes(word.toLowerCase()))) {
+      category = cat;
+      break;
     }
   }
 
   return {
-    category: '기타/일반',
-    confidence: 0.5,
-    reason: '기본 카테고리',
-    inputTokens: 0,
-    outputTokens: 0,
+    detectedCountry: countryCode,
+    countryConfidence: 0.7,
+    templateCategory: category,
+    categoryConfidence: 0.7,
     cost: 0
   };
 }
 
 /**
- * 기존 업로드된 템플릿 이름 가져오기
+ * 🎯 국가별 조항 카테고리 DB 조회
  */
-async function getExistingTemplateNames(token) {
+async function getCountryClauseCategories(countryCode) {
   try {
-    const response = await axios.get(`${CONFIG.baseUrl}/api/admin/templates`, {
-      headers: {
-        'Authorization': `Bearer ${token}`
+    const response = await axios.get(`${CONFIG.baseUrl}/api/admin/country-clause-categories`, {
+      params: { countryCode }
+    });
+    
+    return response.data.categories || [];
+  } catch (error) {
+    console.warn(`      ⚠️ ${countryCode} 조항 카테고리 조회 실패: ${error.message}`);
+    
+    // 폴백: 기본 카테고리 반환
+    return [
+      { categoryKey: 'basic', categoryName: '기본 정보' },
+      { categoryKey: 'payment', categoryName: '대금 지급' },
+      { categoryKey: 'service', categoryName: '서비스 범위' },
+      { categoryKey: 'delivery', categoryName: '납품 조건' },
+      { categoryKey: 'warranty', categoryName: '보증 조건' },
+      { categoryKey: 'ip_rights', categoryName: '지적재산권' },
+      { categoryKey: 'confidentiality', categoryName: '기밀유지' },
+      { categoryKey: 'liability', categoryName: '책임한계' },
+      { categoryKey: 'termination', categoryName: '계약해지' },
+      { categoryKey: 'dispute', categoryName: '분쟁해결' },
+      { categoryKey: 'other', categoryName: '기타' }
+    ];
+  }
+}
+
+/**
+ * 템플릿 업로드 (원본 조항 분석 로직 유지)
+ */
+async function uploadTemplate({ name, category, content, countryCode, language, legalSystem, aiVerification, clauseCategories, token }) {
+  try {
+    const response = await axios.post(`${CONFIG.baseUrl}/api/admin/templates`, {
+      name,
+      category,
+      content,
+      description: `${name} - AI 자동 분류 완료`,
+      countryCode, // ✅ 국가 코드 전달
+      language,
+      legalSystem,
+      tags: [countryCode, language, legalSystem, 'ai-classified'],
+      aiVerification: {
+        method: 'optimized_analysis',
+        detectedCountry: aiVerification.detectedCountry,
+        countryMatch: aiVerification.detectedCountry === countryCode,
+        countryConfidence: aiVerification.countryConfidence,
+        categoryConfidence: aiVerification.categoryConfidence,
+        aiCost: aiVerification.cost
       },
-      params: {
-        limit: 1000 // 충분히 큰 수로 모든 템플릿 조회
+      // 조항 분석 활성화 (서버에서 AI로 처리)
+      enableClauseAnalysis: true,
+      clauseCategories: clauseCategories, // DB에서 조회한 카테고리
+      // 80% 기준 유지 (원본 로직)
+      clauseConfidenceThreshold: 0.8
+    }, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       }
     });
     
+    return {
+      success: true,
+      extractedClauses: response.data.extractedClauses || 0,
+      analysis: response.data.analysis,
+      message: response.data.message
+    };
+    
+  } catch (error) {
+    return {
+      success: false,
+      error: error.response?.data?.error || error.message
+    };
+  }
+}
+
+/**
+ * 기존 템플릿 이름 조회 (파일명 기반 중복 체크)
+ */
+async function getExistingTemplateNames(token, countryCode) {
+  try {
+    const response = await axios.get(`${CONFIG.baseUrl}/api/admin/templates`, {
+      headers: { 'Authorization': `Bearer ${token}` },
+      params: { limit: 1000, countryCode }
+    });
+    
     return response.data.templates.map(t => {
-      // "템플릿명 (한국어)" 형태에서 템플릿명만 추출
       const match = t.name.match(/^(.+?)\s*\(/);
       return match ? match[1].trim() : t.name;
     });
   } catch (error) {
-    console.warn(`⚠️ 기존 템플릿 목록 조회 실패: ${error.message}`);
+    console.warn(`      ⚠️ 기존 템플릿 조회 실패: ${error.message}`);
     return [];
   }
 }
 
 /**
- * 개별 템플릿 업로드
+ * 완료된 파일 이동
  */
-async function uploadTemplate({ name, category, content, language, classification, token }) {
-  for (let attempt = 1; attempt <= CONFIG.maxRetries; attempt++) {
-    try {
-      const response = await axios.post(`${CONFIG.baseUrl}/api/admin/templates`, {
-        name: name,
-        category: category,
-        content: content,
-        description: `${name} 템플릿 (AI 자동 분류)`,
-        language: language,
-        tags: [language, 'ai-classified', `confidence-${Math.round(classification.confidence * 100)}`],
-        classification: {
-          method: 'ai_automatic',
-          confidence: classification.confidence,
-          reason: classification.reason,
-          aiCost: classification.cost
-        }
-      }, {
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      const result = response.data;
-      
-      return {
-        success: true,
-        extractedClauses: result.extractedClauses || 0,
-        analysis: result.analysis,
-        message: result.message
-      };
-      
-    } catch (error) {
-      const errorMsg = error.response?.data?.error || error.message;
-      console.log(`     ⚠️ 업로드 시도 ${attempt}/${CONFIG.maxRetries} 실패: ${errorMsg}`);
-      
-      if (attempt === CONFIG.maxRetries) {
-        return {
-          success: false,
-          error: errorMsg
-        };
-      }
-      
-      // 재시도 전 짧은 대기
-      await sleep(1000);
+async function moveToProcessed(filePath, countryCode, fileName) {
+  try {
+    const processedDir = path.join(CONFIG.processedDir, `contract_templates_${countryCode}`);
+    
+    if (!fs.existsSync(processedDir)) {
+      fs.mkdirSync(processedDir, { recursive: true });
     }
+    
+    const targetPath = path.join(processedDir, fileName);
+    fs.renameSync(filePath, targetPath);
+    
+    console.log(`      📦 완료파일 이동: processed/${countryCode}/`);
+  } catch (error) {
+    console.warn(`      ⚠️ 파일 이동 실패: ${error.message}`);
   }
 }
 
@@ -470,8 +581,6 @@ function parseArguments() {
   args.forEach(arg => {
     if (arg.startsWith('--token=')) {
       result.token = arg.split('=')[1];
-    } else if (arg.startsWith('--lang=') || arg.startsWith('--language=')) {
-      result.language = arg.split('=')[1];
     } else if (arg === '--batch' || arg === '-b') {
       result.batch = true;
     } else if (arg === '--help' || arg === '-h') {
@@ -483,65 +592,90 @@ function parseArguments() {
 }
 
 /**
- * 언어 선택 (대화형)
+ * 사용법 출력
  */
-async function selectLanguage() {
+function showUsage() {
+  console.log('🌍 최적화된 다국가 계약서 자동 분류 시스템');
+  console.log('사용법: node scripts/bulkUploadTemplates.js --token=TOKEN [옵션]');
+  console.log('');
+  console.log('옵션:');
+  console.log('  --token=TOKEN    인증 토큰 (필수)');
+  console.log('  --batch, -b      배치 모드');
+  console.log('  --help, -h       도움말');
+  console.log('');
+  console.log('📂 폴더 구조:');
+  console.log('  ./templates/contract_templates_kr/  🇰🇷 한국');
+  console.log('  ./templates/contract_templates_us/  🇺🇸 미국');
+  console.log('  ... (30개국 지원)');
+  console.log('');
+  console.log('🚀 최적화 기능:');
+  console.log('  • AI 실행 전 중복 완전 제거 (비용 절약)');
+  console.log('  • 국가 판별 + 계약 카테고리만 AI 분석');
+  console.log('  • 조항 카테고리는 DB 기반 동적 조회');
+  console.log('  • 조항 분석은 서버에서 AI로 처리');
+  console.log('  • 80% 기준 성공/실패 분류 (원본 로직 유지)');
+  console.log('  • 완료 파일 자동 이동');
+  console.log('');
+  console.log('📋 처리 순서:');
+  console.log('  1. 파일명으로 기존 템플릿 배제 (AI 미사용)');
+  console.log('  2. 첫 500자로 국가 판별 (AI)');
+  console.log('  3. 파일명으로 계약 카테고리 분류 (AI)');
+  console.log('  4. 조항 분석은 서버에서 처리 (AI + 80% 기준)');
+}
+
+/**
+ * 진행 확인
+ */
+async function confirmProceed() {
   const readline = require('readline');
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout
   });
   
-  console.log('\n🌍 사용 가능한 언어:');
-  Object.entries(LANGUAGES).forEach(([code, info]) => {
-    console.log(`   ${code}: ${info.flag} ${info.name}`);
-  });
-  
   const answer = await new Promise(resolve => {
-    rl.question('\n언어 코드를 입력하세요 (kr/en/es/de): ', resolve);
+    rl.question('계속 진행하시겠습니까? (y/N): ', resolve);
   });
   
   rl.close();
+  return answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes';
+}
+
+/**
+ * 최종 결과 출력
+ */
+function showFinalResults(stats) {
+  console.log('\n🎉 다국가 계약서 업로드 완료!');
+  console.log('==========================================');
+  console.log(`📊 전체 통계:`);
+  console.log(`   📄 총 파일: ${stats.files}개`);
+  console.log(`   ✅ 성공: ${stats.success}개`);
+  console.log(`   ❌ 실패: ${stats.fails}개`);
+  console.log(`   ⏭️ 스킵: ${stats.skipped}개 (중복)`);
+  console.log(`   ⚠️ 국가 불일치: ${stats.mismatches}개`);
+  console.log(`   🔍 총 조항: ${stats.clauses.toLocaleString()}개`);
+  console.log(`   💰 총 AI 비용: ${stats.cost.toFixed(6)}`);
+  console.log(`   📈 성공률: ${stats.files > 0 ? Math.round((stats.success / stats.files) * 100) : 0}%`);
   
-  if (!LANGUAGES[answer]) {
-    console.error('❌ 유효하지 않은 언어 코드입니다.');
-    process.exit(1);
+  if (stats.mismatches > 0) {
+    console.log('\n⚠️ 국가 불일치 파일들을 검토해주세요!');
   }
   
-  return answer;
+  if (stats.clauses > 0) {
+    console.log('\n🔍 조항 검토 안내:');
+    console.log('1. http://localhost:3100/admin/clauses 접속');
+    console.log('2. 검토 대기 조항들 승인/거부 처리');
+    console.log(`3. 예상 검토 대기: ~${Math.round(stats.clauses * 0.3)}개`);
+    console.log('4. 80% 미만 신뢰도 조항 우선 검토 권장');
+  }
 }
 
 /**
- * 사용법 출력
- */
-function showUsage() {
-  console.log('사용법:');
-  console.log('  node scripts/bulkUploadTemplates.js --token=YOUR_TOKEN [옵션]');
-  console.log('');
-  console.log('필수 옵션:');
-  console.log('  --token=TOKEN        인증 토큰');
-  console.log('');
-  console.log('선택 옵션:');
-  console.log('  --lang=LANG         언어 코드 (kr/en/es/de, 기본값: 대화형 선택)');
-  console.log('  --batch, -b         배치 모드 (확인 없이 진행)');
-  console.log('  --help, -h          도움말 출력');
-  console.log('');
-  console.log('예시:');
-  console.log('  node scripts/bulkUploadTemplates.js --token=abc123 --lang=kr');
-  console.log('  node scripts/bulkUploadTemplates.js --token=abc123 --batch');
-  console.log('');
-  console.log('토큰 확인 방법:');
-  console.log('1. 브라우저에서 http://localhost:3100/login 접속');
-  console.log('2. 관리자로 로그인');
-  console.log('3. 개발자도구(F12) > Application > Local Storage > token 값 복사');
-}
-
-/**
- * AI 분류 비용 계산
+ * AI 비용 계산 (최적화 반영)
  */
 function calculateAICost(fileCount) {
-  const avgInputTokens = 300;  // 파일명 + 프롬프트
-  const avgOutputTokens = 50;  // 간단한 JSON 응답
+  const avgInputTokens = 250; // 최적화로 대폭 감소
+  const avgOutputTokens = 40;
   
   const inputCost = (fileCount * avgInputTokens * 0.25) / 1000000;
   const outputCost = (fileCount * avgOutputTokens * 2.00) / 1000000;
@@ -591,6 +725,12 @@ if (require.main === module) {
   if (args.help) {
     showUsage();
     process.exit(0);
+  }
+  
+  if (!args.token) {
+    console.error('❌ 토큰이 필요합니다.');
+    showUsage();
+    process.exit(1);
   }
   
   main().catch(error => {

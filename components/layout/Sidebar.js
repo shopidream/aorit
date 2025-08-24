@@ -1,4 +1,4 @@
-// components/layout/Sidebar.js - 관리자 메뉴 추가
+// components/layout/Sidebar.js - 계약서 업로드 메뉴 추가
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
@@ -16,7 +16,9 @@ import {
   FileText, 
   CheckCircle, 
   Shield,
-  BarChart3
+  BarChart3,
+  Upload,
+  Bot
 } from 'lucide-react';
 
 export default function Sidebar({ isOpen, onClose, isMobile }) {
@@ -29,12 +31,18 @@ export default function Sidebar({ isOpen, onClose, isMobile }) {
     { href: '/clients', label: '고객 관리', icon: UsersIcon },
     { href: '/quotes', label: '견적 관리', icon: DocumentIcon },
     { href: '/contracts', label: '계약 관리', icon: ContractIcon },
-    { href: '/profile', label: '프로필', icon: SettingsIcon },
-    { href: '/public-page', label: '공개 페이지', icon: SettingsIcon }
+    { href: '/profile', label: '프로필', icon: SettingsIcon }
+    
+  ];
+
+  // AI 도구 메뉴 (새로 추가)
+  const aiToolsMenuItems = [
+    { href: '/contracts/upload', label: '계약서 업로드 및 검토', icon: Upload }
   ];
 
   // 관리자 메뉴
   const adminMenuItems = [
+    { href: '/public-page', label: '공개 페이지', icon: SettingsIcon },
     { href: '/admin/templates', label: '템플릿 관리', icon: FileText },
     { href: '/admin/clauses', label: '조항 검토', icon: CheckCircle },
     { href: '/admin/usage-stats', label: '사용량 통계', icon: BarChart3 }
@@ -96,6 +104,43 @@ export default function Sidebar({ isOpen, onClose, isMobile }) {
                 <IconComponent 
                   size={20} 
                   className={isActive ? 'text-blue-600' : 'text-gray-500'} 
+                />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
+          
+          {/* AI 도구 메뉴 */}
+          <div className="pt-4 pb-2">
+            <div className="flex items-center gap-2 px-4 py-2">
+              <Bot size={16} className="text-purple-600" />
+              <span className="text-xs font-semibold text-purple-600 uppercase tracking-wide">
+                AI 계약서 검토
+              </span>
+            </div>
+          </div>
+          
+          {aiToolsMenuItems.map((item) => {
+            const IconComponent = item.icon;
+            const isActive = router.pathname === item.href;
+            
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={handleNavClick}
+                className={`
+                  flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium
+                  transition-all duration-200
+                  ${isActive 
+                    ? 'bg-purple-50 text-purple-700 border-2 border-purple-200' 
+                    : 'text-gray-700 hover:bg-purple-50 hover:text-purple-700'
+                  }
+                `}
+              >
+                <IconComponent 
+                  size={20} 
+                  className={isActive ? 'text-purple-600' : 'text-gray-500'} 
                 />
                 <span>{item.label}</span>
               </Link>
