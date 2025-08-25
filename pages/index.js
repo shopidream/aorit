@@ -149,24 +149,26 @@ export default function LandingPage() {
                 </div>
               </div>
               
-              <div className="flex items-center space-x-4">
-                <Link 
-                  href="/login"
-                  className={`px-4 py-2 rounded-lg transition-all duration-300 ${
-                    isScrolled
-                      ? 'text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 border border-gray-300'
-                      : 'text-white hover:text-white/80 backdrop-blur-md bg-white/10 border border-white/30 hover:bg-white/20'
-                  }`}
-                >
-                  로그인
-                </Link>
-                <Link 
-                  href="/register"
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl border border-white/20"
-                >
-                  무료 시작하기
-                </Link>
-              </div>
+              <div className="flex items-center space-x-2 sm:space-x-4">
+  <Link 
+    href="/login"
+    className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-sm sm:text-base transition-all duration-300 backdrop-blur-md ${
+      isScrolled
+        ? 'text-gray-700 hover:text-gray-900 bg-white/90 border border-gray-300'
+        : 'text-white hover:text-white/80 bg-white/10 border border-white/30 hover:bg-white/20'
+    }`}
+  >
+    로그인
+  </Link>
+  
+  <Link 
+    href="/register"
+    className="px-4 py-1.5 sm:px-6 sm:py-2 text-sm sm:text-base rounded-lg bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl border border-white/20"
+  >
+    무료 시작하기
+  </Link>
+</div>
+
             </div>
           </div>
         </nav>
@@ -190,18 +192,23 @@ export default function LandingPage() {
 
           {/* Hero 콘텐츠 */}
           <div className="relative z-10 max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+
+            {/* 글라데이션 글라스모피즘 뱃지 */}
+  <div className="inline-block mb-4 px-4 py-2 bg-gradient-to-r from-blue-400/30 via-purple-400/30 to-pink-400/30 backdrop-blur-md border border-white/30 rounded-full text-white font-semibold text-sm shadow-lg">
+    베타버전 출시
+  </div>
             
 
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-8 drop-shadow-2xl">
-              AI로 만드는{' '}
-              <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-                스마트 계약서
-              </span>
-            </h1>
+          <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-8 drop-shadow-2xl whitespace-nowrap">
+  AI로 만드는{' '}
+  <span className="bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+    스마트 견적 계약
+  </span>
+</h1>
             
             <p className="text-lg md:text-xl lg:text-2xl text-white/90 mb-12 max-w-4xl mx-auto leading-relaxed drop-shadow-lg">
-            수만개의 계약 데이터를 기반으로, 누구나{' '}
-              <span className="font-semibold text-yellow-300">단 5분</span>만에 계약 완료
+            웹페이지{' '}
+              <span className="font-semibold text-yellow-300">5분 완성.</span> 모바일 링크로 견적과 계약서 서명까지
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
@@ -226,15 +233,15 @@ export default function LandingPage() {
             <div className="flex flex-wrap justify-center gap-4 text-sm">
               <div className="backdrop-blur-xl bg-white/20 border border-white/40 px-4 py-2 rounded-full text-white flex items-center">
                 <Brain className="w-4 h-4 mr-2" />
-                수천 계약 사례 학습 AI
+                AI 작성 웹사이트
               </div>
               <div className="backdrop-blur-xl bg-white/20 border border-white/40 px-4 py-2 rounded-full text-white flex items-center">
                 <Clock className="w-4 h-4 mr-2" />
-                5분 완료
+                링크로 바로 고객과 소통
               </div>
               <div className="backdrop-blur-xl bg-white/20 border border-white/40 px-4 py-2 rounded-full text-white flex items-center">
                 <Smartphone className="w-4 h-4 mr-2" />
-                모바일 서명 지원
+                모바일에서 바로 서명
               </div>
             </div>
           </div>
@@ -258,19 +265,19 @@ export default function LandingPage() {
                   step: "01",
                   icon: <FileText className="w-8 h-8" />,
                   title: "서비스 등록",
-                  description: "한 줄만 적으면, 서비스가 자동으로 정리됩니다."
+                  description: "몇 줄만 적으면, 서비스가 웹페이지로 생성됩니다. " 
                 },
                 {
                   step: "02", 
                   icon: <TrendingUp className="w-8 h-8" />,
                   title: "견적서 생성",
-                  description: "서비스를 선택하면, 전문적인 견적서가 바로 완성됩니다."
+                  description: "고객 문의가 오면, 모바일에서 견적서를 만들어 원클릭 전송하세요."
                 },
                 {
                   step: "03",
                   icon: <Shield className="w-8 h-8" />,
                   title: "계약서 작성", 
-                  description: "몇 분만에 계약서를 작성하고 안전하게 보관하세요."
+                  description: "고객이 견적을 승인하면, 몇 분 만에 안전한 계약서를 제작하세요."
                 },
                 {
                   step: "04",
@@ -308,7 +315,7 @@ export default function LandingPage() {
                 <span className="text-blue-400">어떤 일</span>을 하시나요?
               </h2>
               <p className="text-xl text-gray-300">
-                친구에게 말하듯 자세히 적어주시면, 알맞는 서비스를 생성해드립니다.
+              간단히 작성하면, 맞춤 서비스가 만들어집니다.
               </p>
             </div>
 

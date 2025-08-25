@@ -19,6 +19,7 @@ import {
 } from '../ui/DesignSystem';
 import { useAuthContext } from '../../contexts/AuthContext';
 import { useRouter } from 'next/router';
+import { Bot, AlertTriangle, CheckCircle, Calendar } from 'lucide-react';
 
 export default function Dashboard() {
   const { user, getAuthHeaders } = useAuthContext();
@@ -29,6 +30,7 @@ export default function Dashboard() {
     contracts: 0,
     revenue: 0
   });
+  const [aiUsageInfo, setAiUsageInfo] = useState(null);
   const [recentActivity, setRecentActivity] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -45,10 +47,11 @@ export default function Dashboard() {
       const responses = await Promise.allSettled([
         fetch('/api/services', { headers: getAuthHeaders() }),
         fetch('/api/quotes', { headers: getAuthHeaders() }),
-        fetch('/api/contracts', { headers: getAuthHeaders() })
+        fetch('/api/contracts', { headers: getAuthHeaders() }),
+        fetch('/api/ai/usage-info', { headers: getAuthHeaders() })
       ]);
 
-      const [servicesRes, quotesRes, contractsRes] = responses;
+      const [servicesRes, quotesRes, contractsRes, aiUsageRes] = responses;
       
       const services = servicesRes.status === 'fulfilled' && servicesRes.value.ok 
         ? await servicesRes.value.json() : [];
@@ -56,6 +59,8 @@ export default function Dashboard() {
         ? await quotesRes.value.json() : [];
       const contracts = contractsRes.status === 'fulfilled' && contractsRes.value.ok 
         ? await contractsRes.value.json() : [];
+      const aiUsage = aiUsageRes.status === 'fulfilled' && aiUsageRes.value.ok 
+        ? await aiUsageRes.value.json() : null;
 
       const acceptedQuotes = quotes.filter(q => q.status === 'accepted');
       const revenue = acceptedQuotes.reduce((sum, q) => sum + (q.amount || 0), 0);
@@ -66,6 +71,8 @@ export default function Dashboard() {
         contracts: contracts.length || 0,
         revenue
       });
+
+      setAiUsageInfo(aiUsage);
 
       // 최근 활동 생성
       const activities = [
@@ -170,7 +177,7 @@ export default function Dashboard() {
       )}
 
       {/* 통계 카드들 */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
         <StatsCard
           title="등록된 서비스"
           value={stats.services}
@@ -199,7 +206,131 @@ export default function Dashboard() {
           variant="danger"
           trend={stats.revenue > 0 ? { isPositive: true, value: "증가" } : null}
         />
+        {/* AI 사용량 카드 */}
+        <StatsCard
+          title="AI 사용량"
+          value={aiUsageInfo ? `${aiUsageInfo.remaining}/${aiUsageInfo.limit}` : '-/-'}
+          icon={Bot}
+          variant={
+            !aiUsageInfo ? "default" :
+            aiUsageInfo.remaining === 0 ? "danger" :
+            aiUsageInfo.remaining <= 5 ? "warning" : "info"
+          }
+          trend={
+            aiUsageInfo && aiUsageInfo.remaining > 0 
+              ? { isPositive: true, value: `${Math.round((aiUsageInfo.remaining / aiUsageInfo.limit) * 100)}% 남음` }
+              : aiUsageInfo && aiUsageInfo.remaining === 0
+              ? { isPositive: false, value: "한도 초과" }
+              : null
+          }
+        />
       </div>
+
+      {/* AI 사용량 상세 정보 */}
+      {aiUsageInfo && (
+        <Card className="p-6 border-2 border-purple-200 bg-gradient-to-r from-purple-50 to-blue-50">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-3 bg-purple-100 rounded-xl">
+              <Bot size={24} className="text-purple-600" />
+            </div>
+            <div>
+              <h3 className="text-xl font-semibold text-gray-900">AI 사용량 현황</h3>
+              <p className="text-gray-600">이번 달 AI 기능 사용 현황입니다</p>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* 사용량 진행바 */}
+            <div className="md:col-span-2">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-gray-700">이번 달 사용량</span>
+                <span className="text-sm font-bold text-purple-600">
+                  {aiUsageInfo.used}/{aiUsageInfo.limit}회 사용
+                </span>
+              </div>
+              
+              <div className="w-full bg-gray-200 rounded-full h-3 mb-4">
+                <div 
+                  className={`h-3 rounded-full transition-all duration-500 ${
+                    aiUsageInfo.remaining === 0 ? 'bg-red-500' :
+                    aiUsageInfo.used / aiUsageInfo.limit >= 0.8 ? 'bg-amber-500' :
+                    'bg-purple-500'
+                  }`}
+                  style={{ width: `${Math.min((aiUsageInfo.used / aiUsageInfo.limit) * 100, 100)}%` }}
+                />
+              </div>
+              
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div>
+                  <div className="text-2xl font-bold text-purple-600">{aiUsageInfo.used}</div>
+                  <div className="text-xs text-gray-500">사용한 횟수</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-emerald-600">{aiUsageInfo.remaining}</div>
+                  <div className="text-xs text-gray-500">남은 횟수</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-blue-600">{aiUsageInfo.limit}</div>
+                  <div className="text-xs text-gray-500">월 한도</div>
+                </div>
+              </div>
+            </div>
+            
+            {/* 상태 및 안내 */}
+            <div className="space-y-4">
+              <div className={`p-4 rounded-lg border-2 ${
+                aiUsageInfo.remaining === 0 
+                  ? 'bg-red-50 border-red-200' 
+                  : aiUsageInfo.remaining <= 5 
+                  ? 'bg-amber-50 border-amber-200'
+                  : 'bg-emerald-50 border-emerald-200'
+              }`}>
+                <div className="flex items-center gap-2 mb-2">
+                  {aiUsageInfo.remaining === 0 ? (
+                    <AlertTriangle className="w-5 h-5 text-red-600" />
+                  ) : aiUsageInfo.remaining <= 5 ? (
+                    <AlertTriangle className="w-5 h-5 text-amber-600" />
+                  ) : (
+                    <CheckCircle className="w-5 h-5 text-emerald-600" />
+                  )}
+                  <span className={`font-medium ${
+                    aiUsageInfo.remaining === 0 ? 'text-red-800' :
+                    aiUsageInfo.remaining <= 5 ? 'text-amber-800' : 'text-emerald-800'
+                  }`}>
+                    {aiUsageInfo.remaining === 0 ? '사용량 초과' :
+                     aiUsageInfo.remaining <= 5 ? '사용량 부족' : '사용 가능'}
+                  </span>
+                </div>
+                <p className={`text-sm ${
+                  aiUsageInfo.remaining === 0 ? 'text-red-700' :
+                  aiUsageInfo.remaining <= 5 ? 'text-amber-700' : 'text-emerald-700'
+                }`}>
+                  {aiUsageInfo.remaining === 0 
+                    ? '이번 달 AI 사용량을 모두 소진했습니다. 다음 달 1일에 초기화됩니다.'
+                    : aiUsageInfo.remaining <= 5
+                    ? `${aiUsageInfo.remaining}회만 더 사용할 수 있습니다. 신중히 사용하세요.`
+                    : `AI 기능을 자유롭게 사용하실 수 있습니다.`
+                  }
+                </p>
+              </div>
+              
+              <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-center gap-2 mb-1">
+                  <Calendar className="w-4 h-4 text-blue-600" />
+                  <span className="text-sm font-medium text-blue-800">초기화 일정</span>
+                </div>
+                <p className="text-xs text-blue-700">
+                  다음 달 1일에 사용량이 {aiUsageInfo.limit}회로 초기화됩니다
+                </p>
+              </div>
+              
+              <div className="text-xs text-gray-500">
+                <strong>AI 기능:</strong> 계약서 생성, 계약서 검토, 서비스 추천
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* 메인 컨텐츠 영역 */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
